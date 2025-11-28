@@ -258,9 +258,8 @@ scripts/
    > "Pain is the most common symptom in knee OA..."
 ```
 
-## 라이선스
 
-MIT License
+
 
 ## 기여
 
