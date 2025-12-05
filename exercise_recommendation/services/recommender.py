@@ -1,6 +1,6 @@
 """LLM 운동 추천 서비스"""
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, TYPE_CHECKING
 import json
 
 from openai import OpenAI
@@ -27,7 +27,7 @@ class ExerciseRecommender:
         self._openai = openai_client or OpenAI()
         self._model = settings.openai_model
 
-    @traceable(run_type="llm", name="llm_exercise_recommendation")
+    @traceable(name="exercise_recommendation_flow")
     def recommend(
         self,
         candidates: List[Dict],
@@ -45,8 +45,55 @@ class ExerciseRecommender:
         Returns:
             (추천 운동 목록, LLM 추론)
         """
+        # Step 1: 프롬프트 구성
         prompt = self._build_prompt(candidates, user_input, adjustments)
 
+        # Step 2: 후보 운동 분석
+        candidate_analysis = self._analyze_candidates(candidates, user_input)
+
+        # Step 3: LLM 호출
+        result = self._call_llm(prompt)
+
+        # Step 4: 응답 파싱 및 운동 매칭
+        recommendations = self._parse_recommendations(result, candidates)
+
+        # Step 5: 추론 포맷팅
+        llm_reasoning = self._format_reasoning(result)
+
+        return recommendations, llm_reasoning
+
+    @traceable(name="candidate_analysis")
+    def _analyze_candidates(
+        self,
+        candidates: List[Dict],
+        user_input: ExerciseRecommendationInput,
+    ) -> Dict:
+        """후보 운동 분석"""
+        analysis = {
+            "total_candidates": len(candidates),
+            "by_difficulty": {},
+            "by_function": {},
+            "patient_constraints": {
+                "physical_level": user_input.physical_score.level,
+                "nrs": user_input.nrs,
+                "age": user_input.demographics.age,
+            },
+        }
+
+        # 난이도별 분류
+        for ex in candidates:
+            diff = ex.get("difficulty", "medium")
+            analysis["by_difficulty"][diff] = analysis["by_difficulty"].get(diff, 0) + 1
+
+            # 기능별 분류
+            for func in ex.get("function_tags", []):
+                analysis["by_function"][func] = analysis["by_function"].get(func, 0) + 1
+
+        return analysis
+
+    @traceable(run_type="llm", name="llm_exercise_selection")
+    def _call_llm(self, prompt: str) -> Dict:
+        """LLM 호출"""
         response = self._openai.chat.completions.create(
             model=self._model,
             messages=[
@@ -65,9 +112,15 @@ class ExerciseRecommender:
             temperature=0.4,
         )
 
-        result = json.loads(response.choices[0].message.content)
+        return json.loads(response.choices[0].message.content)
 
-        # 추천 결과 파싱
+    @traceable(name="recommendation_parsing")
+    def _parse_recommendations(
+        self,
+        result: Dict,
+        candidates: List[Dict],
+    ) -> List[RecommendedExercise]:
+        """LLM 응답 파싱 및 운동 매칭"""
         recommendations = []
         selected_ids = result.get("selected_exercises", [])
 
@@ -98,10 +151,7 @@ class ExerciseRecommender:
                     )
                 )
 
-        # 전체 추론 구성
-        llm_reasoning = self._format_reasoning(result)
-
-        return recommendations, llm_reasoning
+        return recommendations
 
     def _build_prompt(
         self,
@@ -109,17 +159,21 @@ class ExerciseRecommender:
         user_input: ExerciseRecommendationInput,
         adjustments: Optional[DifficultyAdjustment],
     ) -> str:
-        """LLM 프롬프트 구성"""
+        """LLM 프롬프트 구성 - 개인화 강화 버전"""
         demo = user_input.demographics
         physical = user_input.physical_score
 
-        # 후보 운동 목록
+        # 후보 운동 목록 (상세 정보 포함)
         candidates_str = "\n".join(
             f"- {e['id']}: {e.get('name_kr', e.get('name_en', ''))} "
             f"(난이도: {e.get('difficulty', 'medium')}, "
-            f"기능: {', '.join(e.get('function_tags', []))})"
+            f"기능: {', '.join(e.get('function_tags', []))}, "
+            f"대상근육: {', '.join(e.get('target_muscles', [])[:2])})"
             for e in candidates
         )
+
+        # 환자 특성 분석
+        patient_profile = self._analyze_patient_profile(demo, user_input.nrs, physical)
 
         # 조정 정보
         adjustment_str = ""
@@ -143,54 +197,131 @@ class ExerciseRecommender:
 - 총점: {recent.total_rpe_score}/15
 """
 
+        # 건너뛴/즐겨찾기 운동 정보
+        preference_str = ""
+        if user_input.skipped_exercises:
+            preference_str += f"\n- 자주 건너뛴 운동: {', '.join(user_input.skipped_exercises[:5])}"
+        if user_input.favorite_exercises:
+            preference_str += f"\n- 즐겨찾기 운동: {', '.join(user_input.favorite_exercises[:5])}"
+
         prompt = f"""
 ## 환자 정보
 - 나이: {demo.age}세
 - 성별: {demo.sex}
-- BMI: {demo.bmi}
+- BMI: {demo.bmi:.1f}
 - 신체 점수: Lv {physical.level} ({physical.total_score}점)
 - 통증 점수 (NRS): {user_input.nrs}/10
+
+## 환자 특성 분석 (개인화 필수 반영)
+{patient_profile}
+{preference_str}
 
 ## 진단 버킷
 {user_input.bucket}
 {adjustment_str}
 {assessment_str}
 
-## 후보 운동
+## 후보 운동 ({len(candidates)}개)
 {candidates_str}
 
+## 선택 기준 (중요도 순)
+1. **환자 특성 맞춤**: 나이/BMI/통증에 따른 운동 강도 조절
+2. **기능 균형**: 가동성, 근력, 안정성 운동을 균형 있게 포함
+3. **다양성**: 같은 기능의 운동만 선택하지 말고 다양하게 선택
+4. **진행성**: 쉬운 운동 → 어려운 운동 순서로 배치
+
+## 개인화 가이드
+- 고령자(65+): 균형/안정성 운동 우선, 고강도 제외
+- 비만(BMI 30+): 체중 부하 적은 운동 우선
+- 고통증(NRS 7+): 저강도, 가동성 위주
+- 젊은 층(40-): 근력 운동 비중 높게
+
 ## 요청
-환자에게 적합한 운동 {settings.min_exercises}~{settings.max_exercises}개를 선택하세요.
-운동 순서: 가동성 → 근력 → 균형
+환자에게 **최적화된** 운동 {settings.min_exercises}~{settings.max_exercises}개를 선택하세요.
+반드시 환자 특성을 고려하여 **개인화된** 조합을 구성하세요.
 
 다음 JSON 형식으로 응답하세요:
 {{
     "selected_exercises": ["E01", "E02", ...],
     "reasons": {{
-        "E01": "추천 이유",
-        "E02": "추천 이유"
+        "E01": "이 환자에게 추천하는 구체적 이유",
+        "E02": "이 환자에게 추천하는 구체적 이유"
     }},
     "scores": {{
         "E01": 0.95,
         "E02": 0.90
     }},
     "combination_rationale": {{
-        "why_together": "운동 조합 시너지",
-        "bucket_coverage": "버킷 치료 적합성",
-        "progression_logic": "순서 논리"
+        "why_together": "이 운동들의 시너지 효과",
+        "bucket_coverage": "{user_input.bucket} 치료에 적합한 이유",
+        "progression_logic": "순서 배치 논리"
     }},
     "patient_fit": {{
-        "physical_level_fit": "신체 점수 적합성",
-        "nrs_consideration": "통증 고려",
-        "assessment_reflection": "사후 설문 반영 (있다면)"
+        "age_consideration": "나이({demo.age}세) 고려 내용",
+        "bmi_consideration": "BMI({demo.bmi:.1f}) 고려 내용",
+        "nrs_consideration": "통증({user_input.nrs}/10) 고려 내용",
+        "physical_level_fit": "신체 Lv {physical.level} 적합성"
     }},
-    "reasoning": "전체 요약"
+    "reasoning": "전체 추천 요약 (2-3문장)"
 }}
 """
         return prompt
 
+    def _analyze_patient_profile(
+        self,
+        demo: Any,
+        nrs: int,
+        physical: Any,
+    ) -> str:
+        """환자 프로필 분석 - LLM 프롬프트용"""
+        profile_notes = []
+
+        # 나이 기반 분석
+        if demo.age >= 70:
+            profile_notes.append("- **고령 환자**: 낙상 위험 고려, 균형/안정성 운동 필수, 고강도 운동 제외")
+        elif demo.age >= 60:
+            profile_notes.append("- **노년기**: 관절 보호 중요, 중등도 이하 난이도 권장")
+        elif demo.age >= 50:
+            profile_notes.append("- **중년기**: 근력 유지 중요, 적절한 강도 가능")
+        elif demo.age < 35:
+            profile_notes.append("- **젊은 연령**: 근력 강화 운동 적극 권장")
+
+        # BMI 기반 분석
+        bmi = demo.bmi
+        if bmi >= 35:
+            profile_notes.append("- **고도비만**: 체중 부하 최소화, 의자/누운 자세 운동 우선")
+        elif bmi >= 30:
+            profile_notes.append("- **비만**: 관절 부담 고려, 저충격 운동 선택")
+        elif bmi >= 25:
+            profile_notes.append("- **과체중**: 체중 관리와 근력 운동 병행")
+        elif bmi < 18.5:
+            profile_notes.append("- **저체중**: 근력 강화 집중")
+
+        # 통증 기반 분석
+        if nrs >= 7:
+            profile_notes.append("- **심한 통증**: 저강도 가동성 운동만, 근력 운동 최소화")
+        elif nrs >= 5:
+            profile_notes.append("- **중등도 통증**: 통증 유발 동작 회피, 점진적 강화")
+        elif nrs >= 3:
+            profile_notes.append("- **경미한 통증**: 대부분 운동 가능, 주의하며 진행")
+        else:
+            profile_notes.append("- **통증 없음**: 적극적인 재활 운동 가능")
+
+        # 신체 점수 기반
+        level = physical.level
+        if level == "D":
+            profile_notes.append("- **신체 Lv D**: 기초 운동만, 저강도 위주")
+        elif level == "C":
+            profile_notes.append("- **신체 Lv C**: 기초~중급 운동 가능")
+        elif level == "B":
+            profile_notes.append("- **신체 Lv B**: 중급 운동 가능, 점진적 강화")
+        else:  # A
+            profile_notes.append("- **신체 Lv A**: 고급 운동 가능, 다양한 운동 선택")
+
+        return "\n".join(profile_notes)
+
     def _format_reasoning(self, result: Dict) -> str:
-        """추론 결과 포맷팅"""
+        """추론 결과 포맷팅 - 개인화 정보 강화"""
         reasoning = result.get("reasoning", "")
 
         # 조합 근거 추가
@@ -204,14 +335,19 @@ class ExerciseRecommender:
             if combo.get("progression_logic"):
                 reasoning += f"- **순서 논리**: {combo['progression_logic']}\n"
 
-        # 환자 적합성 추가
+        # 환자 적합성 추가 (개인화 정보 강화)
         fit = result.get("patient_fit", {})
         if fit:
             reasoning += "\n\n### 환자 맞춤 고려사항:\n"
-            if fit.get("physical_level_fit"):
-                reasoning += f"- **신체 수준**: {fit['physical_level_fit']}\n"
+            if fit.get("age_consideration"):
+                reasoning += f"- **나이 고려**: {fit['age_consideration']}\n"
+            if fit.get("bmi_consideration"):
+                reasoning += f"- **BMI 고려**: {fit['bmi_consideration']}\n"
             if fit.get("nrs_consideration"):
                 reasoning += f"- **통증 고려**: {fit['nrs_consideration']}\n"
+            if fit.get("physical_level_fit"):
+                reasoning += f"- **신체 수준**: {fit['physical_level_fit']}\n"
+            # 이전 버전 호환성
             if fit.get("assessment_reflection"):
                 reasoning += f"- **사후 설문 반영**: {fit['assessment_reflection']}\n"
 

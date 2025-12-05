@@ -3,6 +3,9 @@
 from typing import List, Dict, Tuple, Optional
 import json
 from pathlib import Path
+import logging
+
+from langsmith import traceable
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -12,12 +15,56 @@ from exercise_recommendation.models.output import RecommendedExercise, ExcludedE
 from exercise_recommendation.models.assessment import DifficultyAdjustment
 from exercise_recommendation.config import settings
 
+logger = logging.getLogger(__name__)
+
+# 유효한 버킷 목록
+VALID_BUCKETS = {"OA", "OVR", "TRM", "INF"}
+DEFAULT_BUCKET = "OA"  # 폴백 버킷
+
 
 class ExerciseFilter:
     """버킷 기반 운동 필터링"""
 
     def __init__(self):
         self._exercise_cache = {}
+
+    @traceable(name="bucket_validation")
+    def _validate_and_normalize_bucket(self, bucket: str) -> str:
+        """
+        버킷 입력 검증 및 정규화
+
+        처리 케이스:
+        1. 정상 버킷: OA, OVR, TRM, INF → 그대로 반환
+        2. 복수 버킷: "TRM|OA|OVR" → 첫 번째 유효 버킷 반환
+        3. 잘못된 버킷: "UNKNOWN" → DEFAULT_BUCKET 반환
+        """
+        if not bucket:
+            logger.warning(f"빈 버킷 입력. 기본값 {DEFAULT_BUCKET} 사용")
+            return DEFAULT_BUCKET
+
+        # 복수 버킷 처리 (| 또는 , 구분자)
+        if "|" in bucket or "," in bucket:
+            separator = "|" if "|" in bucket else ","
+            bucket_list = [b.strip().upper() for b in bucket.split(separator)]
+
+            # 첫 번째 유효 버킷 찾기
+            for b in bucket_list:
+                if b in VALID_BUCKETS:
+                    logger.info(f"복수 버킷 '{bucket}' → 첫 번째 유효 버킷 '{b}' 사용")
+                    return b
+
+            # 유효한 버킷이 없으면 기본값
+            logger.warning(f"복수 버킷 '{bucket}'에서 유효 버킷 없음. 기본값 {DEFAULT_BUCKET} 사용")
+            return DEFAULT_BUCKET
+
+        # 단일 버킷 검증
+        normalized = bucket.strip().upper()
+        if normalized in VALID_BUCKETS:
+            return normalized
+
+        # 유효하지 않은 버킷
+        logger.warning(f"유효하지 않은 버킷 '{bucket}'. 기본값 {DEFAULT_BUCKET} 사용")
+        return DEFAULT_BUCKET
 
     def _load_exercises(self, body_part: str) -> List[Dict]:
         """운동 데이터 로드"""
@@ -46,6 +93,7 @@ class ExerciseFilter:
         self._exercise_cache[body_part] = exercises_list
         return exercises_list
 
+    @traceable(name="exercise_bucket_filtering")
     def filter_for_bucket(
         self,
         body_part: str,
@@ -67,6 +115,9 @@ class ExerciseFilter:
         Returns:
             (후보 운동 리스트, 제외된 운동 리스트)
         """
+        # 버킷 검증 및 정규화
+        validated_bucket = self._validate_and_normalize_bucket(bucket)
+
         all_exercises = self._load_exercises(body_part)
         allowed_difficulties = self._get_allowed_difficulties(
             physical_score, nrs, adjustments
@@ -78,8 +129,8 @@ class ExerciseFilter:
         for ex in all_exercises:
             diagnosis_tags = ex.get("diagnosis_tags", [])
 
-            # 버킷 매칭 체크
-            if bucket not in diagnosis_tags:
+            # 버킷 매칭 체크 (정규화된 버킷 사용)
+            if validated_bucket not in diagnosis_tags:
                 continue
 
             difficulty = ex.get("difficulty", "medium")

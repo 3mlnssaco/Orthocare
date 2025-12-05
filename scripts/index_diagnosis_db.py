@@ -16,13 +16,16 @@ from pathlib import Path
 from typing import List, Dict, Any
 from datetime import datetime
 
+from dotenv import load_dotenv
+load_dotenv(override=True)  # .env 파일 우선
+
 from pinecone import Pinecone, ServerlessSpec
 from openai import OpenAI
 
-# 설정
-PINECONE_INDEX = os.getenv("PINECONE_INDEX", "orthocare-diagnosis")
-EMBEDDING_MODEL = "text-embedding-3-large"
-EMBEDDING_DIM = 3072
+# 설정 (환경변수 무시, 하드코딩)
+PINECONE_INDEX = "orthocare-diagnosis"
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIM = 1536
 DATA_DIR = Path(__file__).parent.parent / "data"
 
 
@@ -33,19 +36,27 @@ def get_clients():
     return pc, openai
 
 
-def ensure_index_exists(pc: Pinecone):
+def ensure_index_exists(pc: Pinecone, recreate: bool = False):
     """인덱스 존재 확인 및 생성"""
-    if PINECONE_INDEX not in pc.list_indexes().names():
-        print(f"인덱스 '{PINECONE_INDEX}' 생성 중...")
-        pc.create_index(
-            name=PINECONE_INDEX,
-            dimension=EMBEDDING_DIM,
-            metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
-        )
-        print(f"인덱스 '{PINECONE_INDEX}' 생성 완료")
-    else:
-        print(f"인덱스 '{PINECONE_INDEX}' 이미 존재")
+    if PINECONE_INDEX in pc.list_indexes().names():
+        if recreate:
+            print(f"인덱스 '{PINECONE_INDEX}' 삭제 중...")
+            pc.delete_index(PINECONE_INDEX)
+            print(f"인덱스 '{PINECONE_INDEX}' 삭제 완료")
+            import time
+            time.sleep(5)  # 삭제 완료 대기
+        else:
+            print(f"인덱스 '{PINECONE_INDEX}' 이미 존재")
+            return
+
+    print(f"인덱스 '{PINECONE_INDEX}' 생성 중... (차원: {EMBEDDING_DIM})")
+    pc.create_index(
+        name=PINECONE_INDEX,
+        dimension=EMBEDDING_DIM,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+    print(f"인덱스 '{PINECONE_INDEX}' 생성 완료")
 
 
 def embed_text(openai: OpenAI, text: str) -> List[float]:
@@ -104,8 +115,10 @@ def index_papers(pc: Pinecone, openai: OpenAI, body_part: str = "knee"):
                 "bucket": ",".join(bucket_tags),
                 "title": paper_info.get("title", chunk.get("title", "")),
                 "text": text[:1000],  # Pinecone 메타데이터 제한
-                "year": paper_info.get("year"),
             }
+            # year가 있을 때만 추가 (null 불허)
+            if paper_info.get("year"):
+                metadata["year"] = paper_info["year"]
 
             vec_id = f"paper_{paper_id}_{chunk.get('chunk_id', 0)}"
             vectors.append({
@@ -176,14 +189,16 @@ def main():
     parser.add_argument("--papers-only", action="store_true", help="논문만 인덱싱")
     parser.add_argument("--orthobullets-only", action="store_true", help="OrthoBullets만 인덱싱")
     parser.add_argument("--clear-first", action="store_true", help="기존 데이터 삭제 후 인덱싱")
+    parser.add_argument("--recreate-index", action="store_true", help="인덱스 삭제 후 재생성")
     parser.add_argument("--body-part", default="knee", help="부위 코드")
     args = parser.parse_args()
 
     print(f"=== 진단용 벡터 DB 인덱싱 시작 ({datetime.now()}) ===")
     print(f"인덱스: {PINECONE_INDEX}")
+    print(f"임베딩 모델: {EMBEDDING_MODEL} (차원: {EMBEDDING_DIM})")
 
     pc, openai = get_clients()
-    ensure_index_exists(pc)
+    ensure_index_exists(pc, recreate=args.recreate_index)
 
     if args.clear_first:
         print("\n기존 데이터 삭제 중...")

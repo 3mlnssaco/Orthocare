@@ -22,18 +22,23 @@ class BucketInferenceSettings(BaseSettings):
     pinecone_api_key: str = Field(default="", description="Pinecone API Key")
 
     # Pinecone
-    pinecone_index: str = Field(
+    pinecone_index_diagnosis: str = Field(
         default="orthocare-diagnosis",
         description="진단용 벡터 DB 인덱스"
     )
 
+    @property
+    def pinecone_index(self) -> str:
+        """하위 호환성을 위한 프로퍼티"""
+        return self.pinecone_index_diagnosis
+
     # OpenAI
     openai_model: str = Field(default="gpt-4o", description="LLM 모델")
     embedding_model: str = Field(
-        default="text-embedding-3-large",
+        default="text-embedding-3-small",
         description="임베딩 모델"
     )
-    embedding_dimension: int = Field(default=3072, description="임베딩 차원")
+    embedding_dimension: int = Field(default=1536, description="임베딩 차원")
 
     # 검색 설정
     min_search_score: float = Field(default=0.35, description="최소 유사도 점수")
@@ -53,7 +58,7 @@ class BucketInferenceSettings(BaseSettings):
 
     # 서버 설정
     host: str = Field(default="0.0.0.0", description="호스트")
-    port: int = Field(default=8000, description="포트")
+    port: int = Field(default=8001, description="포트")
 
     class Config:
         env_prefix = ""

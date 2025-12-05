@@ -22,15 +22,20 @@ class ExerciseRecommendationSettings(BaseSettings):
     pinecone_api_key: str = Field(default="", description="Pinecone API Key")
 
     # Pinecone
-    pinecone_index: str = Field(
+    pinecone_index_exercise: str = Field(
         default="orthocare-exercise",
         description="운동용 벡터 DB 인덱스"
     )
 
+    @property
+    def pinecone_index(self) -> str:
+        """하위 호환성을 위한 프로퍼티"""
+        return self.pinecone_index_exercise
+
     # OpenAI
     openai_model: str = Field(default="gpt-4o", description="LLM 모델")
     embedding_model: str = Field(
-        default="text-embedding-3-large",
+        default="text-embedding-3-small",
         description="임베딩 모델"
     )
 
@@ -60,7 +65,7 @@ class ExerciseRecommendationSettings(BaseSettings):
 
     # 서버 설정
     host: str = Field(default="0.0.0.0", description="호스트")
-    port: int = Field(default=8000, description="포트")
+    port: int = Field(default=8002, description="포트")
 
     class Config:
         env_prefix = ""

@@ -9,6 +9,8 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
 
+from langsmith import traceable
+
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -40,6 +42,7 @@ class AssessmentHandler:
         )
         self.cycle_count = cycle_count or settings.session_cycle_count
 
+    @traceable(name="assessment_processing")
     def process(
         self,
         previous_assessments: Optional[List[PostAssessmentResult]],

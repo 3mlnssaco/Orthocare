@@ -16,13 +16,16 @@ from pathlib import Path
 from typing import List, Dict, Any
 from datetime import datetime
 
+from dotenv import load_dotenv
+load_dotenv(override=True)  # .env 파일 우선
+
 from pinecone import Pinecone, ServerlessSpec
 from openai import OpenAI
 
-# 설정
-PINECONE_INDEX = os.getenv("PINECONE_INDEX", "orthocare-exercise")
-EMBEDDING_MODEL = "text-embedding-3-large"
-EMBEDDING_DIM = 3072
+# 설정 (환경변수 무시, 하드코딩)
+PINECONE_INDEX = "orthocare-exercise"
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIM = 1536
 DATA_DIR = Path(__file__).parent.parent / "data"
 
 

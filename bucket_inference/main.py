@@ -4,6 +4,13 @@ Docker Container 1: 버킷 추론 모델
 포트: 8001 (외부) → 8000 (내부)
 """
 
+import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+# LangSmith 프로젝트 분리
+os.environ["LANGSMITH_PROJECT"] = "orthocare-bucket-inference"
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -85,7 +92,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "main:app",
+        "bucket_inference.main:app",
         host=settings.host,
         port=settings.port,
         reload=True,

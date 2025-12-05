@@ -180,8 +180,19 @@ class BucketArbitrator:
         if citations_str:
             full_reasoning += citations_str
 
+        # final_bucket 정규화 (복수 선택 방지)
+        final_bucket = result.get("final_bucket", weight_ranking[0])
+        if "|" in final_bucket:
+            # 복수 선택된 경우 첫 번째 버킷 사용
+            final_bucket = final_bucket.split("|")[0].strip()
+
+        # 유효한 버킷인지 확인
+        valid_buckets = ["OA", "OVR", "TRM", "INF"]
+        if final_bucket not in valid_buckets:
+            final_bucket = weight_ranking[0]
+
         return {
-            "final_bucket": result.get("final_bucket", weight_ranking[0]),
+            "final_bucket": final_bucket,
             "confidence": result.get("confidence", 0.7),
             "evidence_summary": result.get("evidence_summary", ""),
             "reasoning": full_reasoning,
@@ -255,10 +266,12 @@ class BucketArbitrator:
 1. 인용은 반드시 위 "검색된 근거 자료"에서만 해야 합니다
 2. 검색 결과가 없으면 "검색된 근거 자료 없음"이라고 명시하세요
 
+**중요**: final_bucket은 반드시 OA, OVR, TRM, INF 중 하나만 선택하세요. 복수 선택 금지.
+
 다음 JSON 형식으로 응답하세요:
 {{
-    "final_bucket": "OA|OVR|TRM|INF",
-    "confidence": 0.0-1.0,
+    "final_bucket": "OA",
+    "confidence": 0.75,
     "evidence_summary": "진단 근거 요약 (2-3문장)",
     "reasoning": "판단 근거 설명",
     "citations": [

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from openai import OpenAI
+from langsmith import traceable
 
 import sys
 from pathlib import Path
@@ -91,6 +92,7 @@ class EvidenceSearchService:
         )
         return response.data[0].embedding
 
+    @traceable(name="evidence_vector_search")
     def search(
         self,
         query: str,

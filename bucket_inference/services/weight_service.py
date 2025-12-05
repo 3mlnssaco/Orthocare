@@ -4,6 +4,8 @@ from typing import List, Dict, Tuple
 import json
 from pathlib import Path
 
+from langsmith import traceable
+
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -24,8 +26,8 @@ class WeightService:
         if body_part in self._weights_cache:
             return self._weights_cache[body_part], self._bucket_cache[body_part]
 
-        weights_path = settings.data_dir / "clinical" / body_part / "weights.json"
-        buckets_path = settings.data_dir / "clinical" / body_part / "buckets.json"
+        weights_path = settings.data_dir / "medical" / body_part / "weights.json"
+        buckets_path = settings.data_dir / "medical" / body_part / "buckets.json"
 
         if not weights_path.exists():
             raise FileNotFoundError(f"가중치 파일을 찾을 수 없습니다: {weights_path}")
@@ -43,6 +45,7 @@ class WeightService:
 
         return weights_data, bucket_order
 
+    @traceable(name="weight_score_calculation")
     def calculate_scores(
         self,
         body_part: BodyPartInput,

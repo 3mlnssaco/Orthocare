@@ -1,12 +1,15 @@
 """운동용 벡터 검색 서비스
 
 벡터 DB: orthocare-exercise
+환자 상태/증상 기반 운동 검색
 """
 
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
+import logging
 
 from openai import OpenAI
+from langsmith import traceable
 
 import sys
 from pathlib import Path
@@ -14,6 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from shared.utils import PineconeClient
 from exercise_recommendation.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -63,6 +68,7 @@ class ExerciseSearchService:
         )
         return response.data[0].embedding
 
+    @traceable(name="exercise_symptom_search")
     def search_by_symptoms(
         self,
         symptoms: List[str],
@@ -157,6 +163,7 @@ class ExerciseSearchService:
 
         return " ".join(parts)
 
+    @traceable(name="find_similar_exercises")
     def search_similar_exercises(
         self,
         exercise_id: str,

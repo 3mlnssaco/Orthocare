@@ -4,6 +4,13 @@ Docker Container 2: 운동 추천 모델
 포트: 8002 (외부) → 8000 (내부)
 """
 
+import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+# LangSmith 프로젝트 분리
+os.environ["LANGSMITH_PROJECT"] = "orthocare-exercise-recommendation"
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -117,7 +124,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "main:app",
+        "exercise_recommendation.main:app",
         host=settings.host,
         port=settings.port,
         reload=True,
