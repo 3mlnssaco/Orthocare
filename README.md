@@ -1,53 +1,453 @@
 # OrthoCare
 
-> 근거 기반 무릎 진단 및 운동 추천 AI 파이프라인
+> 근거 기반 무릎 진단 및 운동 추천 AI 시스템 (V3 - 마이크로서비스 아키텍처)
 
-## 개요
+---
+
+## 목차
+
+1. [프로젝트 개요](#1-프로젝트-개요)
+2. [V3 아키텍처](#2-v3-아키텍처---마이크로서비스-분리)
+3. [프로젝트 구조](#3-프로젝트-구조)
+4. [파이프라인 상세](#4-파이프라인-상세)
+5. [데이터 구조](#5-데이터-구조)
+6. [API 엔드포인트](#6-api-엔드포인트)
+7. [사후 평가 시스템](#7-사후-평가-시스템-rpe-기반)
+8. [설치 및 실행](#8-설치-및-실행)
+9. [평가 결과](#9-평가-결과)
+10. [기술 스택](#10-기술-스택)
+
+---
+
+## 1. 프로젝트 개요
 
 OrthoCare는 자연어 증상 입력을 분석하여 무릎 통증의 원인을 진단하고, 의학 논문 근거에 기반한 맞춤형 운동 프로그램을 추천하는 AI 시스템입니다.
 
-### 주요 기능
+### 핵심 기능
 
 - **3-Layer 근거 검색**: 검증된 논문 → OrthoBullets → PubMed 순으로 신뢰도 높은 근거 우선 제공
 - **버킷 기반 진단**: 4가지 카테고리(OA/OVR/TRM/INF)로 무릎 통증 분류
 - **Anti-Hallucination**: LLM이 실제 검색된 문서만 인용 (가짜 논문 인용 방지)
 - **맞춤형 운동 추천**: 진단 결과와 신체 상태에 따른 운동 프로그램 생성
+- **사후 평가 반영**: RPE 기반 피드백으로 다음 세션 난이도 자동 조정
 
-## 아키텍처
+### 버킷 분류 체계
+
+| 버킷 | 의미 | 주요 특징 | 예시 |
+|------|------|----------|------|
+| **OA** | Osteoarthritis (퇴행성) | 만성, 진행성, 아침 뻣뻣함 <30분 | 골관절염, 연골 마모 |
+| **OVR** | Overuse (과사용) | 활동 후 악화, 반복적 동작 | 러너스니, 슬개대퇴 증후군 |
+| **TRM** | Trauma (외상) | 급성 발병, 외상 이력 | ACL 손상, 반월판 파열 |
+| **INF** | Inflammatory (염증) | 붓기, 열감, 전신 증상 | 화농성 관절염, 통풍 |
+
+### 핵심 원칙
+
+- **Fail-fast**: 오류 발생 시 즉시 드러내고 해결 (조용한 폴백 금지)
+- **실제 근거 인용**: LLM 응답에서 벡터 DB 검색 결과만 인용 (hallucination 금지)
+- Body-part 네임스페이스 분리 (무릎 → 어깨 → 전신 확장)
+
+---
+
+## 2. V3 아키텍처 - 마이크로서비스 분리
+
+### 분리 배경
+
+| 문제점 | 해결책 |
+|--------|--------|
+| 버킷 추론(2주 1회)과 운동 추천(매일)이 통합 | 독립 Docker 컨테이너로 분리 |
+| 매일 운동 추천 시 불필요한 버킷 추론 비용 | 필요할 때만 버킷 추론 호출 |
+| 벡터 DB 통합으로 검색 정확도 저하 | 진단용 / 운동용 벡터 DB 분리 |
+
+### 서비스 구성
 
 ```
-[자연어 입력] → [증상 추출] → [벡터 검색] → [LLM 추론] → [버킷 결정] → [운동 추천]
-                                  ↓
-                        ┌─────────────────┐
-                        │ Pinecone 벡터DB │
-                        │ - 논문 (Layer 1) │
-                        │ - OrthoBullets  │
-                        │ - 운동 데이터    │
-                        └─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    OrthoCare V3 Architecture                     │
+└─────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────┐         ┌──────────────────────┐
+│  bucket_inference    │         │ exercise_recommendation│
+│  (Docker :8001)      │         │  (Docker :8002)       │
+├──────────────────────┤         ├──────────────────────┤
+│ • 버킷 추론          │         │ • 운동 추천           │
+│ • 2주 1회 호출       │  ────▶  │ • 매일 호출           │
+│ • 벡터DB: diagnosis  │         │ • 벡터DB: exercise    │
+└──────────────────────┘         └──────────────────────┘
+         │                                │
+         └────────────┬───────────────────┘
+                      ▼
+              ┌──────────────┐
+              │   shared/    │
+              │ 공통 모듈     │
+              └──────────────┘
 ```
 
-## 버킷 분류
+| 서비스 | 포트 | 빈도 | 벡터 DB |
+|--------|------|------|---------|
+| **bucket_inference** | 8001 | 2주 1회 | orthocare-diagnosis |
+| **exercise_recommendation** | 8002 | 매일 | orthocare-exercise |
 
-| 버킷 | 의미 | 예시 |
+### 벡터 DB 분리
+
+| 인덱스 | 용도 | 소스 |
+|--------|------|------|
+| `orthocare-diagnosis` | 버킷 추론 | verified_paper, orthobullets, pubmed |
+| `orthocare-exercise` | 운동 추천 | exercise |
+
+---
+
+## 3. 프로젝트 구조
+
+```
+Orthocare/
+├── bucket_inference/               # 버킷 추론 서비스
+│   ├── main.py                     # FastAPI 엔트리포인트 (:8001)
+│   ├── config/settings.py          # 설정 (PINECONE_INDEX=orthocare-diagnosis)
+│   ├── models/
+│   │   ├── input.py                # BucketInferenceInput
+│   │   └── output.py               # BucketInferenceOutput
+│   ├── services/
+│   │   ├── weight_service.py       # 가중치 계산
+│   │   ├── evidence_search.py      # 벡터 검색 (논문/가이드라인)
+│   │   ├── ranking_merger.py       # 랭킹 통합
+│   │   └── bucket_arbitrator.py    # LLM 버킷 중재
+│   ├── pipeline/
+│   │   └── inference_pipeline.py   # 버킷 추론 파이프라인
+│   └── Dockerfile
+│
+├── exercise_recommendation/        # 운동 추천 서비스
+│   ├── main.py                     # FastAPI 엔트리포인트 (:8002)
+│   ├── config/settings.py          # 설정 (PINECONE_INDEX=orthocare-exercise)
+│   ├── models/
+│   │   ├── input.py                # ExerciseRecommendationInput
+│   │   ├── output.py               # ExerciseRecommendationOutput
+│   │   └── assessment.py           # 사전/사후 평가 모델
+│   ├── services/
+│   │   ├── assessment_handler.py   # 사후설문 처리 (핵심!)
+│   │   ├── exercise_filter.py      # 버킷 기반 필터링
+│   │   ├── personalization.py      # 개인화 조정
+│   │   └── recommender.py          # LLM 운동 추천
+│   ├── pipeline/
+│   │   └── recommendation_pipeline.py
+│   └── Dockerfile
+│
+├── shared/                         # 공유 모듈
+│   ├── models/
+│   │   ├── demographics.py         # Demographics 모델
+│   │   └── body_part.py            # BodyPartInput 모델
+│   └── utils/
+│       ├── logging.py
+│       └── pinecone_client.py      # Pinecone 공통 클라이언트
+│
+├── data/                           # 데이터
+│   ├── medical/knee/
+│   │   ├── papers/                 # 논문 (PDF + 청크)
+│   │   │   ├── original/           # 원본 PDF
+│   │   │   ├── processed/          # 청크 처리된 JSON
+│   │   │   └── paper_metadata.json # 논문별 버킷/소스 메타데이터
+│   │   └── guidelines/
+│   ├── exercise/knee/
+│   │   └── exercises.json          # 운동 라이브러리 (50개)
+│   ├── crawled/
+│   │   └── orthobullets_cache.json # OrthoBullets 교육 자료 (5개)
+│   └── clinical/knee/
+│       ├── weights.json
+│       ├── buckets.json
+│       ├── red_flags.json
+│       └── symptom_mapping.json
+│
+├── scripts/
+│   ├── index_diagnosis_db.py       # 진단용 벡터 DB 인덱싱
+│   └── index_exercise_db.py        # 운동용 벡터 DB 인덱싱
+│
+├── docs/knee/                      # 무릎 관련 문서
+│   ├── form_v1.1.md                # 설문 양식
+│   └── weights_v1.1.md             # 가중치 정의
+│
+└── docker-compose.yml              # Docker 오케스트레이션
+```
+
+---
+
+## 4. 파이프라인 상세
+
+### 전체 흐름
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 1: 입력 처리                                              │
+├─────────────────────────────────────────────────────────────────┤
+│ 1-1. 입력 검증                                                  │
+│ 1-2. 레드플래그 체크 (부위별 룰)                                 │
+│ 1-3. 설문 → 증상 코드 매핑 (테이블 기반, LLM 없음)               │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 2: 진단 (병렬 처리)                                       │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐              ┌─────────────────┐           │
+│  │ 경로 A: 가중치   │              │ 경로 B: 벡터검색 │           │
+│  │ weights.json    │              │ 의미 기반 검색   │           │
+│  └────────┬────────┘              └────────┬────────┘           │
+│           └───────────────┬────────────────┘                    │
+│                           ↓                                     │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ LLM Pass #1 — 버킷 검증/정당화                           │    │
+│  │ • 두 경로 결과 비교, 불일치 감지 시 재검토                │    │
+│  │ • Output: 최종 버킷 + 신뢰도 + 근거 설명                 │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 3: 운동 처방                                              │
+├─────────────────────────────────────────────────────────────────┤
+│ 3-1. 버킷 기반 운동 필터링                                       │
+│ 3-2. LLM Pass #2 — 운동 추천                                    │
+│      Input: 버킷 + 근거 + 신체점수 + NRS + 금기조건              │
+│      Output: 운동 5~7개 + 추천 이유                             │
+│ 3-3. 루틴 구성 (순서, 세트/렙/휴식)                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 병렬 검색 전략 (가중치 + 벡터)
+
+**문제**: 가중치만 믿으면 오류 시 전체가 틀어짐
+**해결**: 두 경로 병렬 실행 → LLM이 비교 판단
+
+```python
+# 경로 A: 규칙 기반
+weight_scores = {"OA": 15, "OVR": 8, "TRM": 3, "INF": 2}
+
+# 경로 B: 의미 기반 검색
+search_results = [
+    {"bucket": "OA", "count": 5},
+    {"bucket": "TRM", "count": 3},  # 가중치와 불일치!
+]
+
+# LLM에 둘 다 전달 → 불일치 감지 시 재검토 후 최종 결정
+```
+
+### 근거 검색 계층 (Evidence Layers)
+
+| Layer | 소스 타입 | 신뢰도 |
+|-------|----------|--------|
+| **1** | verified_paper | 최상 |
+| **2** | orthobullets | 상 |
+| **3** | pubmed | 중 (미검증) |
+
+**현재 벡터 DB 현황**:
+```
+총 벡터 수: 875개
+├── verified_paper: 47개 (검증된 논문 청크)
+├── pubmed: 40개 (PubMed 논문 청크)
+├── orthobullets: 5개 (OrthoBullets 교육 자료)
+└── exercise: 50개 (운동 데이터)
+```
+
+### LLM 인용 규칙 (Anti-Hallucination)
+
+```
+## 인용 규칙 (매우 중요)
+- 벡터 DB 검색 결과에 있는 문서만 인용
+- 존재하지 않는 논문/가이드라인 생성 금지
+- 인용 형식: "제목" [source] - "관련 내용"
+```
+
+---
+
+## 5. 데이터 구조
+
+### 논문 메타데이터 (`paper_metadata.json`)
+
+```json
+{
+  "papers": {
+    "duncan2008": {
+      "title": "Pain and Function in Knee Osteoarthritis (Duncan 2008)",
+      "buckets": ["OA"],
+      "source_type": "verified_paper",
+      "evidence_level": "Level II",
+      "year": 2008
+    }
+  }
+}
+```
+
+### OrthoBullets 캐시 (`orthobullets_cache.json`)
+
+| 토픽 | 버킷 | 내용 |
 |------|------|------|
-| **OA** | Osteoarthritis (퇴행성) | 골관절염, 연골 마모 |
-| **OVR** | Overuse (과사용) | 러너스니, 슬개대퇴 증후군 |
-| **TRM** | Trauma (외상) | ACL 손상, 반월판 파열 |
-| **INF** | Inflammatory (염증) | 화농성 관절염, 통풍 |
+| knee_oa_overview | OA | 무릎 골관절염 |
+| acl_injury | TRM | 전방십자인대 손상 |
+| meniscus_tear | TRM | 반월판 파열 |
+| patellofemoral_syndrome | OVR | 슬개대퇴 증후군 |
+| septic_arthritis | INF | 화농성 관절염 |
 
-## 설치
+### 벡터 DB 메타데이터 스키마
+
+```python
+metadata = {
+    "body_part": "knee",           # 필수
+    "source": "verified_paper",    # verified_paper, orthobullets, pubmed, exercise
+    "bucket": "OA,TRM",            # 버킷 태그 (쉼표 구분)
+    "title": "논문 제목",
+    "text": "청크 텍스트 내용...",
+    "year": 2008,
+    "url": "https://..."
+}
+```
+
+---
+
+## 6. API 엔드포인트
+
+### 버킷 추론 (Port 8001)
+
+```bash
+POST /api/v1/infer-bucket
+```
+
+**Request:**
+```json
+{
+  "demographics": {
+    "age": 55,
+    "sex": "female",
+    "height_cm": 160,
+    "weight_kg": 65
+  },
+  "body_parts": [{
+    "code": "knee",
+    "symptoms": ["pain_bilateral", "chronic", "stairs_down", "stiffness_morning"]
+  }],
+  "natural_language": {
+    "chief_complaint": "양쪽 무릎이 아프고 계단 내려갈 때 힘들어요"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "body_part": "knee",
+  "final_bucket": "OA",
+  "confidence": 0.85,
+  "bucket_scores": {
+    "OA": 15.0,
+    "OVR": 4.0,
+    "TRM": 0.0,
+    "INF": 2.0
+  },
+  "evidence_summary": "OARSI 가이드라인에 따르면...",
+  "inferred_at": "2025-12-05T12:00:00"
+}
+```
+
+### 운동 추천 (Port 8002)
+
+```bash
+POST /api/v1/recommend-exercises
+```
+
+**Request:**
+```json
+{
+  "user_id": "user_001",
+  "body_part": "knee",
+  "bucket": "OA",
+  "physical_score": {
+    "level": "C",
+    "total_score": 9
+  },
+  "demographics": {
+    "age": 55,
+    "sex": "female"
+  },
+  "nrs": 5,
+  "previous_assessments": [
+    {"session": 1, "rpe_difficulty": 3, "rpe_muscle": 3, "rpe_sweat": 2}
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "exercises": [
+    {
+      "id": "ex_001",
+      "name_kr": "힐 슬라이드",
+      "sets": 2,
+      "reps": "10회",
+      "rest_sec": 30,
+      "reason": "ROM 개선에 효과적"
+    }
+  ],
+  "total_duration_min": 15,
+  "difficulty_level": "low",
+  "assessment_status": "normal",
+  "adjustments_applied": {"difficulty": 0, "reps": 0}
+}
+```
+
+---
+
+## 7. 사후 평가 시스템 (RPE 기반)
+
+### 신체 점수 시스템
+
+**사전 평가 (4문항, 각 1~4점):**
+
+| 레벨 | 점수 범위 | 운동 개수 | 난이도 |
+|------|----------|----------|--------|
+| **D** | 4-7점 | 3개 | low |
+| **C** | 8-10점 | 4개 | low-medium |
+| **B** | 11-13점 | 5개 | medium |
+| **A** | 14-16점 | 6개 | medium-high |
+
+### 사후 평가 (RPE 3문항)
+
+| 문항 | 점수 범위 | 조정 대상 |
+|------|----------|----------|
+| 운동 난이도 체감 | 1-5 | 난이도, 세트 수 |
+| 근육 자극 정도 | 1-5 | 반복 수 (렙) |
+| 땀 배출량 | 1-5 | 운동 개수 |
+
+### 난이도 조정 로직
+
+```
+3세션 RPE 합계:
+- 합계 ≤ 6: 너무 쉬움 → 난이도 상향
+- 합계 7-11: 적정 → 유지
+- 합계 ≥ 12: 너무 힘듦 → 난이도 하향
+```
+
+### AssessmentHandler 케이스 처리
+
+```python
+# 케이스별 처리:
+# 1. fresh_start: 최초 운동 (사전 평가만 사용)
+# 2. normal: 정상 운동 (이전 기록 반영, 3세션 완료 시 조정)
+# 3. reset: 오랜만 (7일+) 또는 기록 손실 (리셋)
+
+handler = AssessmentHandler()
+result = handler.process(
+    previous_assessments=previous_assessments,
+    last_assessment_date=last_date,
+)
+# result.status: "fresh_start" | "normal" | "reset"
+```
+
+---
+
+## 8. 설치 및 실행
+
+### 환경 설정
 
 ```bash
 # 저장소 클론
 git clone https://github.com/3mlnssaco/Orthocare.git
 cd Orthocare
-
-# 가상환경 생성
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# 의존성 설치
-pip install -r requirements.txt
 
 # 환경변수 설정
 cp .env.example .env
@@ -59,204 +459,112 @@ cp .env.example .env
 ```bash
 OPENAI_API_KEY=sk-...
 PINECONE_API_KEY=...
-PINECONE_INDEX=orthocare
-PINECONE_HOST=...  # 선택사항
 ```
 
-## 사용법
-
-### 1. 데이터 인덱싱
+### Docker로 실행
 
 ```bash
-# 전체 인덱싱 (논문 + 운동 + OrthoBullets)
-PYTHONPATH=. python scripts/run_indexing.py
+# 전체 서비스 시작
+docker-compose up -d
 
-# 논문만 재인덱싱
-PYTHONPATH=. python scripts/run_indexing.py --papers-only
+# 개별 서비스 실행
+docker-compose up bucket-inference      # 버킷 추론만
+docker-compose up exercise-recommendation  # 운동 추천만
+
+# 로그 확인
+docker-compose logs -f
 ```
 
-### 2. E2E 테스트
+### 로컬 개발
 
 ```bash
-# 기본 테스트 (첫 번째 페르소나)
-PYTHONPATH=. python scripts/test_e2e.py
+# 가상환경 생성
+python -m venv .venv
+source .venv/bin/activate
 
-# 모든 페르소나 테스트
-PYTHONPATH=. python scripts/test_e2e.py --all
+# 의존성 설치
+pip install -r requirements.txt
 
-# 특정 페르소나 테스트
-PYTHONPATH=. python scripts/test_e2e.py --persona GS-OA-001
+# 버킷 추론 서비스 실행
+cd bucket_inference && uvicorn main:app --reload --port 8001
+
+# 운동 추천 서비스 실행 (새 터미널)
+cd exercise_recommendation && uvicorn main:app --reload --port 8002
 ```
 
-테스트 결과는 `data/evaluation/test_results/YYYY-MM-DD/`에 저장됩니다:
-- `run_001_GS-OA-001.json` - 건별 상세 결과
-- `REPORT.md` - 종합 리포트
+### 벡터 DB 인덱싱
 
-### 3. 파이프라인 실행
+```bash
+# 진단용 벡터 DB 인덱싱
+PYTHONPATH=. python scripts/index_diagnosis_db.py
 
-```python
-from orthocare.pipelines import GranularPipeline
-from openai import OpenAI
-from pinecone import Pinecone
-
-# 클라이언트 초기화
-openai_client = OpenAI()
-pc = Pinecone()
-index = pc.Index("orthocare")
-
-# 파이프라인 실행
-pipeline = GranularPipeline(
-    llm_client=openai_client,
-    vector_store=index,
-)
-
-result = pipeline.run({
-    "body_parts": [{
-        "code": "knee",
-        "symptoms": ["무릎 통증", "아침 뻣뻣함", "계단 오르기 어려움"]
-    }],
-    "natural_language": {
-        "chief_complaint": "55세 여성, 3개월 전부터 무릎이 아파요"
-    }
-})
-
-print(result.diagnoses["knee"].final_bucket)  # OA
-print(result.diagnoses["knee"].llm_reasoning)  # 추론 근거
+# 운동용 벡터 DB 인덱싱
+PYTHONPATH=. python scripts/index_exercise_db.py
 ```
 
-### 4. 앱용 출력 (Phase 3-4)
+---
 
-앱에서는 질환 버킷(OA, TRM 등)을 사용자에게 직접 노출하지 않고, 친근한 메시지와 운동 테이블만 제공합니다.
+## 9. 평가 결과
 
-```python
-# 파이프라인 실행 후 앱용 출력 생성
-result = pipeline.run(input_data)
+### 최신 평가 결과 (2025-11-29)
 
-# JSON 형식 (API 응답용)
-app_output = pipeline.generate_app_output(result)
+**전체 성능:**
+- 총 케이스: 20개
+- 통과: 19개
+- 실패: 1개
+- **정확도: 95.0%**
 
-# 마크다운 형식 (화면 표시용)
-app_markdown = pipeline.generate_app_markdown(result)
-```
+**버킷별 정확도:**
 
-**앱용 JSON 출력 예시:**
+| 버킷 | 총 케이스 | 정확 | 정확도 |
+|------|----------|------|--------|
+| OA | 6 | 5 | 83.3% |
+| OVR | 5 | 5 | 100.0% |
+| TRM | 5 | 5 | 100.0% |
+| INF | 2 | 2 | 100.0% |
+| RED_FLAG | 2 | 2 | 100.0% |
 
-```json
-{
-  "user_summary": {
-    "age": 55,
-    "physical_level": "C"
-  },
-  "body_parts": [
-    {
-      "code": "knee",
-      "name": "무릎",
-      "intro_message": "무릎 상태를 분석한 결과, 맞춤 운동을 추천해드려요.",
-      "exercise_intro": "현재 상태에 도움이 되는 운동들이에요",
-      "total_duration_min": 15,
-      "exercises": [
-        {
-          "name": "힐 슬라이드",
-          "difficulty": "쉬움",
-          "sets": 2,
-          "reps": "10회",
-          "rest": "30초",
-          "reason": "ROM 개선에 효과적",
-          "youtube": "https://youtube.com/..."
-        },
-        {
-          "name": "대퇴사두근 수축",
-          "difficulty": "쉬움",
-          "sets": 3,
-          "reps": "10회",
-          "rest": "30초",
-          "reason": "근력 유지에 도움",
-          "youtube": null
-        }
-      ],
-      "red_flag": null
-    }
-  ]
-}
-```
+### 테스트 페르소나
 
-**앱용 마크다운 출력 예시:**
+| Persona | 나이 | 증상 | 예상 버킷 |
+|---------|------|------|----------|
+| 1 | 55 | 무릎 통증, 아침 뻣뻣함, 계단 오르기 어려움 | OA |
+| 2 | 28 | ACL 부상 후 불안정감, 운동 중 손상 | TRM |
+| 3 | 35 | 달리기 후 무릎 앞쪽 통증, 앉았다 일어날 때 악화 | OVR |
 
-```markdown
-### 무릎
+---
 
-무릎 상태를 분석한 결과, 맞춤 운동을 추천해드려요.
+## 10. 기술 스택
 
-**현재 상태에 도움이 되는 운동들이에요** (총 15분)
+| 항목 | 기술 |
+|------|------|
+| **LLM** | OpenAI GPT-4o-mini |
+| **벡터 DB** | Pinecone (3072차원, text-embedding-3-large) |
+| **프레임워크** | FastAPI, Pydantic |
+| **컨테이너** | Docker, Docker Compose |
+| **언어** | Python 3.11+ |
 
-| 운동 | 난이도 | 세트 | 반복 | 휴식 |
-|------|--------|------|------|------|
-| [힐 슬라이드](https://youtube.com/...) | 쉬움 | 2 | 10회 | 30초 |
-| 대퇴사두근 수축 | 쉬움 | 3 | 10회 | 30초 |
-| 클램쉘 | 보통 | 2 | 15회 | 30초 |
-```
+### 결정 사항
 
-**레드플래그 시 출력:**
+| 항목 | 결정 |
+|------|------|
+| 무릎 버킷 수 | 4개 (OA/OVR/TRM/INF) |
+| 벡터 DB | Pinecone (서버리스, 3072차원) |
+| 임베딩 모델 | text-embedding-3-large (OpenAI) |
+| 최소 유사도 | 0.35 (검색 결과 필터링) |
+| OrthoBullets | 크롤링 불가 → 수동 큐레이션 |
+| LLM 인용 | 검색된 문서만 (hallucination 금지) |
 
-```markdown
-⚠️ **주의가 필요해요**
-> 발열과 함께 심한 부종이 있습니다. 전문의 상담을 권장합니다.
-```
+---
 
-## 프로젝트 구조
+## 버전 히스토리
 
-```
-orthocare/
-├── config/           # 설정 (API 키, 상수)
-├── models/           # 데이터 모델
-├── services/
-│   ├── diagnosis/    # 버킷 판정 (LLM)
-│   ├── evidence/     # 3-Layer 검색
-│   ├── exercise/     # 운동 추천
-│   └── input/        # 입력 검증
-├── pipelines/        # 전체 오케스트레이션
-└── data_ops/
-    ├── indexing/     # 벡터 인덱싱
-    └── crawlers/     # 데이터 수집
+| 브랜치 | 설명 |
+|--------|------|
+| `main` | V3 마이크로서비스 아키텍처 (현재) |
+| `v1-unified-model` | V1 통합 파이프라인 (레거시) |
 
-data/
-├── medical/knee/papers/     # 논문 (PDF + 청크)
-├── crawled/                 # OrthoBullets 캐시
-├── exercise/knee/           # 운동 라이브러리
-└── evaluation/              # 테스트 결과
-
-scripts/
-├── run_indexing.py          # 인덱싱 스크립트
-├── test_e2e.py              # E2E 테스트
-└── crawl_orthobullets.py    # 크롤링 (현재 비활성)
-```
-
-## 기술 스택
-
-- **LLM**: OpenAI GPT-4
-- **벡터 DB**: Pinecone (3072차원, text-embedding-3-large)
-- **트레이싱**: LangSmith
-- **언어**: Python 3.11+
-
-## LLM 인용 규칙
-
-이 시스템은 LLM이 **실제 검색된 문서만 인용**하도록 설계되었습니다:
-
-```
-## 인용 규칙 (Anti-Hallucination)
-- 벡터 DB 검색 결과에 있는 문서만 인용
-- 존재하지 않는 논문/가이드라인 생성 금지
-- 인용 형식: "제목" [source] - "관련 내용"
-```
-
-출력 예시:
-```
-## 근거 문서
-1. **Knee Osteoarthritis - OrthoBullets** [orthobullets]
-   > "Risk factors: age, obesity, prior injury. Morning stiffness <30 minutes."
-2. **Duncan 2008** [verified_paper]
-   > "Pain is the most common symptom in knee OA..."
-```
+---
 
 
 

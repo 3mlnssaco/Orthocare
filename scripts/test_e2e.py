@@ -438,6 +438,29 @@ def test_full_pipeline_with_recording(openai_client, persona, recorder: TestResu
     filepath = recorder.record_run(persona["id"], result)
     print_step(f"결과 저장: {filepath.name}")
 
+    # 문제 자동 감지 및 Sheet 로깅
+    try:
+        from data.check.sheet_logger import detect_and_log_problems
+
+        actual_bucket = result.get("actual_bucket", "")
+        expected_bucket = result.get("expected_bucket", "")
+        llm_reasoning = result.get("llm_reasoning", "")
+        input_symptoms = result.get("input", {}).get("symptoms", [])
+        confidence = float(result.get("confidence", 0) or 0)
+
+        # 문제 감지 및 로깅
+        if actual_bucket and not result.get("success"):
+            detect_and_log_problems(
+                case_id=persona["id"],
+                expected_bucket=expected_bucket,
+                actual_bucket=actual_bucket,
+                llm_reasoning=llm_reasoning,
+                input_symptoms=input_symptoms,
+                confidence=confidence,
+            )
+    except Exception as e:
+        print_step(f"Sheet 로깅 실패: {e}")
+
     return result
 
 

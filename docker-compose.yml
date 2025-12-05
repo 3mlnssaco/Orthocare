@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # 버킷 추론 모델 (Docker Container 1)
+  # 사용 빈도: 2주 1회
+  # 벡터 DB: orthocare-diagnosis
+  bucket-inference:
+    build:
+      context: .
+      dockerfile: bucket_inference/Dockerfile
+    container_name: orthocare-bucket-inference
+    ports:
+      - "8001:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_INDEX=orthocare-diagnosis
+    volumes:
+      - ./data:/app/data:ro
+      - ./shared:/app/shared:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 운동 추천 모델 (Docker Container 2)
+  # 사용 빈도: 매일
+  # 벡터 DB: orthocare-exercise
+  exercise-recommendation:
+    build:
+      context: .
+      dockerfile: exercise_recommendation/Dockerfile
+    container_name: orthocare-exercise-recommendation
+    ports:
+      - "8002:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_INDEX=orthocare-exercise
+    volumes:
+      - ./data:/app/data:ro
+      - ./shared:/app/shared:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: orthocare-network

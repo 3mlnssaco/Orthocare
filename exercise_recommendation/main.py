@@ -1,0 +1,124 @@
+"""Exercise Recommendation FastAPI 서버
+
+Docker Container 2: 운동 추천 모델
+포트: 8002 (외부) → 8000 (내부)
+"""
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from exercise_recommendation.models import (
+    ExerciseRecommendationInput,
+    ExerciseRecommendationOutput,
+)
+from exercise_recommendation.pipeline import ExerciseRecommendationPipeline
+from exercise_recommendation.config import settings
+
+app = FastAPI(
+    title="OrthoCare Exercise Recommendation",
+    description="운동 추천 모델 API (매일 사용)",
+    version="1.0.0",
+)
+
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 파이프라인 인스턴스
+pipeline = ExerciseRecommendationPipeline()
+
+
+@app.get("/health")
+async def health_check():
+    """헬스 체크"""
+    return {"status": "healthy", "service": "exercise-recommendation"}
+
+
+@app.post("/api/v1/recommend-exercises", response_model=ExerciseRecommendationOutput)
+async def recommend_exercises(input_data: ExerciseRecommendationInput):
+    """
+    운동 추천 API
+
+    사용 빈도: 매일
+
+    입력:
+    - user_id: 사용자 ID
+    - body_part: 부위 코드
+    - bucket: 진단 버킷 (버킷 추론 결과)
+    - physical_score: 신체 점수
+    - demographics: 인구통계 정보
+    - nrs: 통증 점수
+    - previous_assessments: 사후 설문 기록 (선택)
+    - last_assessment_date: 마지막 설문 날짜 (선택)
+
+    출력:
+    - exercises: 추천 운동 목록
+    - adjustments_applied: 적용된 조정
+    - assessment_status: 사후 설문 처리 상태
+    """
+    try:
+        result = pipeline.run(input_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/recommend-exercises/simple")
+async def recommend_exercises_simple(input_data: ExerciseRecommendationInput):
+    """
+    간단 운동 추천 API (LLM 미사용)
+
+    빠른 응답이 필요할 때 사용
+    """
+    try:
+        # 사후 설문 처리
+        assessment_result = pipeline.assessment_handler.process(
+            previous_assessments=input_data.previous_assessments,
+            last_assessment_date=input_data.last_assessment_date,
+        )
+
+        # 필터링
+        candidates, excluded = pipeline.exercise_filter.filter_for_bucket(
+            body_part=input_data.body_part,
+            bucket=input_data.bucket,
+            physical_score=input_data.physical_score,
+            nrs=input_data.nrs,
+            adjustments=assessment_result.adjustments,
+        )
+
+        # 간단 추천
+        recommendations = pipeline.recommender.simple_recommend(
+            candidates=candidates,
+            physical_level=input_data.physical_score.level,
+        )
+
+        return {
+            "user_id": input_data.user_id,
+            "body_part": input_data.body_part,
+            "bucket": input_data.bucket,
+            "exercises": [r.model_dump() for r in recommendations],
+            "assessment_status": assessment_result.status,
+            "assessment_message": assessment_result.message,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=True,
+    )

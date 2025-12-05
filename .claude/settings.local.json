@@ -6,7 +6,10 @@
       "Bash(source .venv/bin/activate)",
       "Bash(python scripts/run_indexing.py:*)",
       "Bash(python scripts/test_e2e.py:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: V3 마이크로서비스 아키텍처로 전환\n\n## 변경사항\n- 버킷 추론 서비스 분리 (bucket_inference/, :8001)\n- 운동 추천 서비스 분리 (exercise_recommendation/, :8002)\n- 공유 모듈 추가 (shared/)\n- Docker Compose 구성 추가\n- 모든 문서를 README.md 하나로 통합\n\n## 삭제\n- 기존 통합 모델 (orthocare/) - v1-unified-model 브랜치에 보존\n- 중복 문서 (claude.md, ARCHITECTURE_V2.md 등)\n\nBREAKING CHANGE: 기존 orthocare/ 패키지가 마이크로서비스로 분리됨\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
