@@ -9,7 +9,7 @@ python-multipart>=0.0.9
 openai>=1.0.0
 
 # Vector DB
-pinecone-client>=3.0.0
+pinecone>=5.0.0
 
 # Tracing (optional)
 langchain>=0.1.0
