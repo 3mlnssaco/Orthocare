@@ -1122,6 +1122,333 @@ POST /api/v1/recommend-exercises
 
 ---
 
+### 7.3 Gateway 통합 API (앱용, Port 8000)
+
+```bash
+POST /api/v1/diagnose-and-recommend
+POST /api/v1/diagnose
+```
+
+#### Request (UnifiedRequest)
+
+필수:
+- `user_id`
+- `demographics` (age/sex/height_cm/weight_kg)
+- `body_parts[]` (code/side/symptoms/nrs)
+
+선택:
+- `request_id`
+- `physical_score.total_score` (4-16)
+- `natural_language` (chief_complaint/pain_description/history)
+- `raw_survey_responses`
+- `options` (include_exercises/exercise_days/skip_exercise_on_red_flag)
+
+최소 요청 (버킷 추론만):
+```json
+{
+  "user_id": "user_001",
+  "demographics": {
+    "age": 55,
+    "sex": "female",
+    "height_cm": 160,
+    "weight_kg": 65
+  },
+  "body_parts": [
+    {
+      "code": "knee",
+      "primary": true,
+      "side": "both",
+      "symptoms": ["pain_medial", "stiffness_morning"],
+      "nrs": 6,
+      "red_flags_checked": []
+    }
+  ],
+  "options": {
+    "include_exercises": false
+  }
+}
+```
+
+전체 요청 (버킷 추론 + 운동 추천):
+```json
+{
+  "user_id": "user_123",
+  "demographics": {
+    "age": 55,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 80
+  },
+  "body_parts": [
+    {
+      "code": "knee",
+      "primary": true,
+      "side": "left",
+      "symptoms": ["pain_medial", "stiffness_morning"],
+      "nrs": 6,
+      "red_flags_checked": []
+    }
+  ],
+  "physical_score": {
+    "total_score": 12
+  },
+  "options": {
+    "include_exercises": true,
+    "exercise_days": 3,
+    "skip_exercise_on_red_flag": true
+  }
+}
+```
+
+#### Response (UnifiedResponse)
+
+주요 필드:
+- `survey_data` (요청 원본 저장용)
+- `diagnosis` (final_bucket, confidence, evidence_summary, red_flag 등)
+- `exercise_plan` (없으면 null)
+- `status`, `message`, `processing_time_ms`
+
+최소 응답 예시:
+```json
+{
+  "request_id": "uuid",
+  "user_id": "user_001",
+  "diagnosis": {
+    "body_part": "knee",
+    "final_bucket": "OA",
+    "confidence": 0.75
+  },
+  "exercise_plan": null,
+  "status": "success",
+  "processing_time_ms": 8000
+}
+```
+
+---
+
+### 7.4 Dudduk 앱 연동 매핑
+
+#### Dudduk -> OrthoCare
+
+| Dudduk API | 필드 | OrthoCare 필드 | 변환 |
+|---|---|---|---|
+| User | userId | user_id | 그대로 |
+| User | birthDate | demographics.age | 생년월일 -> 나이 |
+| User | gender | demographics.sex | male/female |
+| User | height | demographics.height_cm | 그대로 |
+| User | weight | demographics.weight_kg | 그대로 |
+| PainSurvey | painArea | body_parts[0].code | knee/shoulder/back/neck/ankle |
+| PainSurvey | affectedSide | body_parts[0].side | left/right/both |
+| PainSurvey | painLevel | body_parts[0].nrs | 0-10 |
+| PainSurvey | painTrigger | body_parts[0].symptoms | survey_mapping 변환 |
+| PainSurvey | painSensation | body_parts[0].symptoms | survey_mapping 변환 |
+| PainSurvey | painDuration | body_parts[0].symptoms | survey_mapping 변환 |
+| PainSurvey | redFlags | body_parts[0].red_flags_checked | red_flags 코드 |
+| ExerciseAbilitySurvey | squat/pushup/stepup/plank | physical_score.total_score | 4문항 합산(4-16) |
+
+권장: `raw_survey_responses`에 Dudduk 설문 원본을 저장하고,
+서버에서 `data/medical/{body_part}/survey_mapping.json` 기준으로 `symptoms` 생성.
+
+#### 무릎 설문 키 (Knee)
+
+기준: `data/medical/knee/survey_mapping.json`
+
+- Q1_location: left/right/both, medial, lateral, anterior
+- Q2_onset: gradual, progressive_1month, after_activity_increase, after_trauma, after_exercise
+- Q4_aggravating: walking_standing, stairs_up, stairs_down, squatting, cross_legged, after_exercise, twisting, morning, at_rest
+- Q5_quality: locking_catching, heavy_dull, swelling_heat, point_tenderness, morning_stiffness(under_30min/over_30min)
+
+레드플래그: `data/medical/knee/red_flags.json`의 `survey_mapping` 코드 사용.
+
+#### 어깨 설문 키 (Shoulder)
+
+기준: `data/medical/shoulder/survey_mapping.json`
+
+- Q1_location: left/right/both, anterior, lateral, superior, axillary, cervical_trapezius
+- Q2_onset: gradual, activity_increase, trauma, progressive_stiff
+- Q4_aggravating: abduction_overhead, forward_flexion, internal_rotation_behind, heavy_lifting, lying_on_side, arm_sustained, at_rest
+- Q5_quality: catching, sharp, dull_heavy, stiff, night_rest
+
+레드플래그 코드:
+- severe_pain_no_movement
+- acute_swelling_heat
+- weakness_numbness
+- radiating_pain_cervical
+- fever_chills
+- post_injection_pain
+
+#### OrthoCare -> Dudduk
+
+- `diagnosis.final_bucket` -> `PainSurveyResponse.diagnosis`
+- `diagnosis.evidence_summary` -> `PainSurveyResponse.recommendation`
+- `diagnosis.red_flag.triggered=true`면 운동 루틴 생성 스킵
+- `exercise_plan.exercises[]` -> `POST /api/routines`의 `RoutineExerciseItem`
+
+---
+
+### 7.5 AI 연동 API 문서 (백엔드 <-> AI)
+
+AI 측 엔드포인트는 별도로 정의합니다.
+
+#### 7.5.1 유저 정보 조회
+
+Request (백엔드 -> AI)
+```json
+{
+  "birthDate": "2026-01-06",
+  "gender": "MALE",
+  "height": 170,
+  "weight": 65
+}
+```
+
+필드 설명:
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| birthDate | string | ✓ | 생년월일 (YYYY-MM-DD) |
+| gender | string | ✓ | 성별 (MALE/FEMALE) |
+| height | integer | ✓ | 키 (cm) |
+| weight | number | ✓ | 몸무게 (kg) |
+
+#### 7.5.2 버킷 추론 (통증 설문 기반)
+
+Request (백엔드 -> AI)
+```json
+{
+  "userId": 1,
+  "painArea": "무릎",
+  "affectedSide": "양쪽",
+  "painStartedDate": "무리하게 운동한 이후부터 아파요",
+  "painLevel": 6,
+  "painTrigger": "오래 걷거나 서있을 때",
+  "painSensation": "뻐근/묵직",
+  "painDuration": "아침에 30분 정도",
+  "birthDate": "2000-01-01",
+  "gender": "MALE",
+  "height": 170,
+  "weight": 65
+}
+```
+
+필드 설명:
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| userId | integer | ✓ | 사용자 ID |
+| painArea | string | ✓ | 아픈 부위 |
+| affectedSide | string | ✓ | 어느 쪽이 아픈지 |
+| painStartedDate | string | ✓ | 언제부터/어떤 계기로 아팠는지 (자유 서술, 예: “무리하게 운동한 이후부터 아파요”) |
+| painLevel | integer | ✓ | 통증 정도 (0-10) |
+| painTrigger | string | ✓ | 언제 통증이 더 심해지는지 (예: “오래 걷거나 서있을 때”, “계단 내려갈 때”) |
+| painSensation | string | ✓ | 어떤 느낌으로 아픈지 (예: “뻐근/묵직”, “찌릿/콕콕”, “걸리는 느낌”) |
+| painDuration | string | ✓ | 통증이 얼마나 지속되는지 (예: “아침에 30분 정도”, “밤에 깨서 아파요”) |
+| birthDate | string | ✓ | 생년월일 (YYYY-MM-DD) |
+| gender | string | ✓ | 성별 (MALE/FEMALE) |
+| height | integer | ✓ | 키 (cm) |
+| weight | number | ✓ | 몸무게 (kg) |
+
+Response (AI -> 백엔드):
+- 피그마 확인 후 정의
+- 필수 포함: 진단 버킷 (OA/OVR/TRM/INF 등)
+
+#### 7.5.3 운동 추천
+
+Request (백엔드 -> AI)
+```json
+{
+  "userId": 1,
+  "bucket": "OA",
+  "painLevel": 5,
+  "squatResponse": "10개",
+  "pushupResponse": "5개",
+  "stepupResponse": "15개",
+  "plankResponse": "30초",
+  "birthDate": "2000-01-01",
+  "gender": "MALE",
+  "height": 170,
+  "weight": 65,
+  "previousFeedback": {
+    "rpeResponse": "적당함",
+    "muscleStimulationResponse": "중간",
+    "sweatResponse": "보통"
+  }
+}
+```
+
+필드 설명:
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| userId | integer | ✓ | 사용자 ID |
+| bucket | string | ✓ | 버킷 추론 결과 (OA/OVR/TRM/INF) |
+| painLevel | integer | ✓ | 현재 통증 정도 (0-10) |
+| squatResponse | string | ✓ | 스쿼트 가능 횟수 |
+| pushupResponse | string | ✓ | 푸시업 가능 횟수 |
+| stepupResponse | string | ✓ | 스텝업 가능 횟수 |
+| plankResponse | string | ✓ | 플랭크 가능 시간 |
+| birthDate | string | ✓ | 생년월일 (YYYY-MM-DD) |
+| gender | string | ✓ | 성별 (MALE/FEMALE) |
+| height | integer | ✓ | 키 (cm) |
+| weight | number | ✓ | 몸무게 (kg) |
+| previousFeedback | object | | 이전 운동 피드백 (최초 운동 시 null) |
+| └─ rpeResponse | string | | 운동 후 몸 상태 |
+| └─ muscleStimulationResponse | string | | 근육 자극 정도 |
+| └─ sweatResponse | string | | 땀 배출량 |
+
+Response (AI -> 백엔드):
+```json
+{
+  "userId": 1,
+  "routineDate": "2026-01-06",
+  "exercises": [
+    {
+      "exerciseId": "E01",
+      "recommendedSets": 3,
+      "recommendedReps": 10,
+      "exerciseOrder": 1
+    },
+    {
+      "exerciseId": "E02",
+      "recommendedSets": 2,
+      "recommendedReps": 15,
+      "exerciseOrder": 2
+    }
+  ]
+}
+```
+
+필드 설명:
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| userId | integer | ✓ | 사용자 ID |
+| routineDate | string | ✓ | 루틴 날짜 (YYYY-MM-DD) |
+| exercises | array | ✓ | 추천 운동 목록 (최소 1개) |
+| └─ exerciseId | string | ✓ | 운동 ID (DB 기준) |
+| └─ recommendedSets | integer | ✓ | 추천 세트 수 |
+| └─ recommendedReps | integer | ✓ | 추천 반복 횟수 |
+| └─ exerciseOrder | integer | ✓ | 운동 순서 |
+
+#### 7.5.4 운동 피드백 제출
+
+Request (백엔드 -> AI)
+```json
+{
+  "rpeResponse": "적당함",
+  "muscleStimulationResponse": "중간",
+  "sweatResponse": "보통"
+}
+```
+
+필드 설명:
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| rpeResponse | string | ✓ | 운동 끝난 후 내 몸은 어떠한가요 |
+| muscleStimulationResponse | string | ✓ | 오늘 근육은 어떻게 느꼈나요 |
+| sweatResponse | string | ✓ | 운동 중 땀은 어느 정도 났나요 |
+
+참고: 이 데이터는 별도 엔드포인트가 아닌,
+다음 운동 추천 Request의 `previousFeedback` 필드로 전달합니다.
+
+---
+
 ## 8. 사후 평가 시스템 (RPE 기반)
 
 ### 신체 점수 시스템
@@ -1188,7 +1515,18 @@ cp .env.example .env
 
 ```bash
 OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o
 PINECONE_API_KEY=...
+PINECONE_INDEX_DIAGNOSIS=orthocare-diagnosis
+PINECONE_INDEX_EXERCISE=orthocare-exercise
+```
+
+선택 환경변수:
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_PROJECT=orthocare
 ```
 
 ### Docker로 실행
@@ -1231,6 +1569,34 @@ PYTHONPATH=. python scripts/index_diagnosis_db.py
 # 운동용 벡터 DB 인덱싱
 PYTHONPATH=. python scripts/index_exercise_db.py
 ```
+
+---
+
+### Railway 배포 (Gateway)
+
+1. Railway 프로젝트 생성 후 GitHub 연결
+2. Start Command 설정:
+   ```
+   uvicorn gateway.main:app --host 0.0.0.0 --port $PORT
+   ```
+3. 환경변수 설정 (위 필수 환경변수 참고)
+4. 배포 후 `/health` 확인
+
+### 배포 테스트
+
+```bash
+# 헬스 체크
+curl https://<your-app>.up.railway.app/health
+
+# 자동 테스트 스크립트
+python test_railway_api.py https://<your-app>.up.railway.app
+```
+
+### 최신 배포 테스트 결과
+
+- URL: https://orthocare-production.up.railway.app
+- 테스트 시간: 2026-01-06 01:03 EST
+- 결과: `/health`, `/api/v1/diagnose-and-recommend`, `/api/v1/diagnose` 모두 성공
 
 ---
 
