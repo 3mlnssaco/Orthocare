@@ -68,48 +68,6 @@ async def health_check():
     }
 
 
-@app.post("/api/v1/diagnose-and-recommend", response_model=UnifiedResponse)
-async def diagnose_and_recommend(request: UnifiedRequest):
-    """통합 API: 버킷 추론 + 운동 추천
-
-    한 번의 요청으로:
-    1. 증상 기반 버킷 추론
-    2. 버킷 기반 운동 추천 (옵션)
-    3. 백엔드 저장용 데이터 반환
-
-    Red Flag 감지 시 운동 추천 자동 스킵
-
-    Request:
-    ```json
-    {
-        "user_id": "user_123",
-        "demographics": {"age": 55, "sex": "male", "height_cm": 175, "weight_kg": 80},
-        "body_parts": [{"code": "knee", "symptoms": ["pain_medial", "stiffness_morning"], "nrs": 6}],
-        "physical_score": {"total_score": 12},
-        "options": {"include_exercises": true, "exercise_days": 3}
-    }
-    ```
-
-    Response:
-    - survey_data: 원본 설문 (백엔드 저장용)
-    - diagnosis: 버킷 추론 결과
-    - exercise_plan: 운동 추천 (red_flag 시 null)
-    """
-    try:
-        result = orchestration_service.process(request)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        import traceback
-        error_detail = f"{type(e).__name__}: {str(e)}"
-        # 디버깅을 위해 더 자세한 에러 정보 포함 (프로덕션에서는 제거 가능)
-        raise HTTPException(
-            status_code=500,
-            detail=f"처리 실패: {error_detail}"
-        )
-
-
 @app.post("/api/v1/recommend-exercises", response_model=ExerciseRecommendationOutput)
 async def recommend_exercises(request: ExerciseRecommendationInput):
     """운동 추천만 실행 (버킷 추론 생략)

@@ -33,9 +33,9 @@ def test_health_check(base_url: str) -> Dict[str, Any]:
         }
 
 
-def test_minimal_request(base_url: str) -> Dict[str, Any]:
-    """최소 요청 테스트 (README 버킷 추론 API 기준 - physical_score 없음)"""
-    url = f"{base_url}/api/v1/diagnose-and-recommend"
+def test_diagnose_only(base_url: str) -> Dict[str, Any]:
+    """버킷 추론만 테스트"""
+    url = f"{base_url}/api/v1/diagnose"
     
     # README의 버킷 추론 API 예시 (최소 필드만)
     payload = {
@@ -59,9 +59,6 @@ def test_minimal_request(base_url: str) -> Dict[str, Any]:
             "pain_description": "아침에 뻣뻣하고 30분 정도 지나면 나아져요",
             "history": "5년 전부터 서서히 심해짐"
         },
-        "options": {
-            "include_exercises": False  # 버킷 추론만
-        }
     }
     
     try:
@@ -83,11 +80,11 @@ def test_minimal_request(base_url: str) -> Dict[str, Any]:
         }
 
 
-def test_swagger_example(base_url: str) -> Dict[str, Any]:
-    """Swagger 예시 요청 테스트 (전체 필드)"""
-    url = f"{base_url}/api/v1/diagnose-and-recommend"
+def test_exercise_only(base_url: str) -> Dict[str, Any]:
+    """운동 추천만 테스트"""
+    url = f"{base_url}/api/v1/recommend-exercises"
     
-    # Swagger의 전체 필드 예시
+    # 운동 추천 입력 (버킷/신체점수/인구통계 필수)
     payload = {
         "user_id": "user_123",
         "demographics": {
@@ -96,22 +93,10 @@ def test_swagger_example(base_url: str) -> Dict[str, Any]:
             "height_cm": 175,
             "weight_kg": 80
         },
-        "body_parts": [{
-            "code": "knee",
-            "primary": True,
-            "side": "left",
-            "symptoms": ["pain_medial", "stiffness_morning"],
-            "nrs": 6,
-            "red_flags_checked": []
-        }],
-        "physical_score": {
-            "total_score": 12
-        },
-        "options": {
-            "include_exercises": True,
-            "exercise_days": 3,
-            "skip_exercise_on_red_flag": True
-        }
+        "body_part": "knee",
+        "bucket": "OA",
+        "physical_score": {"total_score": 12},
+        "nrs": 5
     }
     
     try:
@@ -195,49 +180,36 @@ def main():
         sys.exit(1)
     
     # 최소 요청 테스트
-    print("\n\n2. 최소 요청 테스트 (README 버킷 추론 API 기준)")
+    print("\n\n2. 버킷 추론만 테스트 (/api/v1/diagnose)")
     print("-" * 70)
-    print("📝 요청 페이로드:")
-    minimal_result = test_minimal_request(base_url)
-    print(json.dumps(minimal_result.get("payload", {}), indent=2, ensure_ascii=False))
+    diag_result = test_diagnose_only(base_url)
+    print(json.dumps(diag_result.get("payload", {}), indent=2, ensure_ascii=False))
     print("\n📥 응답:")
-    print(json.dumps({k: v for k, v in minimal_result.items() if k != "payload"}, indent=2, ensure_ascii=False))
+    print(json.dumps({k: v for k, v in diag_result.items() if k != "payload"}, indent=2, ensure_ascii=False))
     
-    # Swagger 예시 테스트
-    print("\n\n3. Swagger 예시 요청 테스트 (전체 필드)")
+    # 운동 추천만 테스트
+    print("\n\n3. 운동 추천만 테스트 (/api/v1/recommend-exercises)")
     print("-" * 70)
     print("📝 요청 페이로드:")
-    swagger_result = test_swagger_example(base_url)
-    print(json.dumps(swagger_result.get("payload", {}), indent=2, ensure_ascii=False))
+    ex_result = test_exercise_only(base_url)
+    print(json.dumps(ex_result.get("payload", {}), indent=2, ensure_ascii=False))
     print("\n📥 응답:")
-    print(json.dumps({k: v for k, v in swagger_result.items() if k != "payload"}, indent=2, ensure_ascii=False))
-    
-    # 진단만 테스트
-    print("\n\n4. 진단만 실행 (/api/v1/diagnose)")
-    print("-" * 70)
-    print("📝 요청 페이로드:")
-    diagnose_result = test_diagnose_only(base_url)
-    print(json.dumps(diagnose_result.get("payload", {}), indent=2, ensure_ascii=False))
-    print("\n📥 응답:")
-    print(json.dumps({k: v for k, v in diagnose_result.items() if k != "payload"}, indent=2, ensure_ascii=False))
+    print(json.dumps({k: v for k, v in ex_result.items() if k != "payload"}, indent=2, ensure_ascii=False))
     
     # 요약
     print("\n\n" + "=" * 70)
     print("테스트 요약")
     print("=" * 70)
     print(f"헬스 체크:        {'✅ 성공' if health_result['success'] else '❌ 실패'}")
-    print(f"최소 요청:        {'✅ 성공' if minimal_result['success'] else '❌ 실패'}")
-    print(f"Swagger 예시:     {'✅ 성공' if swagger_result['success'] else '❌ 실패'}")
-    print(f"진단만 실행:      {'✅ 성공' if diagnose_result['success'] else '❌ 실패'}")
+    print(f"버킷 추론:        {'✅ 성공' if diag_result['success'] else '❌ 실패'}")
+    print(f"운동 추천:        {'✅ 성공' if ex_result['success'] else '❌ 실패'}")
     
     # 실패한 테스트 상세 정보
     failures = []
-    if not minimal_result['success']:
-        failures.append(("최소 요청", minimal_result))
-    if not swagger_result['success']:
-        failures.append(("Swagger 예시", swagger_result))
-    if not diagnose_result['success']:
-        failures.append(("진단만 실행", diagnose_result))
+    if not diag_result['success']:
+        failures.append(("버킷 추론", diag_result))
+    if not ex_result['success']:
+        failures.append(("운동 추천", ex_result))
     
     if failures:
         print("\n\n❌ 실패한 테스트 상세:")

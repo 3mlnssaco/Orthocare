@@ -108,7 +108,8 @@ OrthoCare는 자연어 증상 입력을 분석하여 근골격계 통증의 원�
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        Gateway Service (port 8000)                       │
-│                    POST /api/v1/diagnose-and-recommend                   │
+│                    POST /api/v1/diagnose                                 │
+│                    POST /api/v1/recommend-exercises                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   📱 App Request (JSON)                                                 │
@@ -1125,8 +1126,8 @@ POST /api/v1/recommend-exercises
 ### 7.3 Gateway 통합 API (앱용, Port 8000)
 
 ```bash
-POST /api/v1/diagnose-and-recommend
 POST /api/v1/diagnose
+POST /api/v1/recommend-exercises
 ```
 
 #### Request (UnifiedRequest)
@@ -1626,7 +1627,7 @@ python test_railway_api.py https://<your-app>.up.railway.app
 
 - URL: https://orthocare-production.up.railway.app
 - 테스트 시간: 2026-01-06 01:03 EST
-- 결과: `/health`, `/api/v1/diagnose-and-recommend`, `/api/v1/diagnose` 모두 성공
+- 결과: `/health`, `/api/v1/diagnose`, `/api/v1/recommend-exercises` 성공
 
 ---
 
