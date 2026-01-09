@@ -1132,17 +1132,16 @@ POST /api/v1/recommend-exercises
 
 #### Request (UnifiedRequest)
 
-필수:
+필수 (버킷 추론 /api/v1/diagnose):
 - `user_id`
 - `demographics` (age/sex/height_cm/weight_kg)
 - `body_parts[]` (code/side/symptoms/nrs)
 
 선택:
 - `request_id`
-- `physical_score.total_score` (4-16)
 - `natural_language` (chief_complaint/pain_description/history)
 - `raw_survey_responses`
-- `options` (include_exercises/exercise_days/skip_exercise_on_red_flag)
+- `physical_score.total_score` (운동 추천 시 전달)
 
 최소 요청 (버킷 추론만):
 ```json
@@ -1164,40 +1163,6 @@ POST /api/v1/recommend-exercises
       "red_flags_checked": []
     }
   ],
-  "options": {
-    "include_exercises": false
-  }
-}
-```
-
-전체 요청 (버킷 추론 + 운동 추천):
-```json
-{
-  "user_id": "user_123",
-  "demographics": {
-    "age": 55,
-    "sex": "male",
-    "height_cm": 175,
-    "weight_kg": 80
-  },
-  "body_parts": [
-    {
-      "code": "knee",
-      "primary": true,
-      "side": "left",
-      "symptoms": ["pain_medial", "stiffness_morning"],
-      "nrs": 6,
-      "red_flags_checked": []
-    }
-  ],
-  "physical_score": {
-    "total_score": 12
-  },
-  "options": {
-    "include_exercises": true,
-    "exercise_days": 3,
-    "skip_exercise_on_red_flag": true
-  }
 }
 ```
 
