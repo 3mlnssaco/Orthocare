@@ -248,20 +248,25 @@ class DiagnosisResult(BaseModel):
         """BucketInferenceOutput에서 생성"""
         # 버킷 → 유형/설명 매핑 (앱 표시용)
         bucket_type_map = {
-            "OA": ("퇴행성형", "퇴행성 관절염 패턴: 아침 뻣뻣함, 점진적 통증"),
-            "OVR": ("과사용형", "과사용/반복 사용 패턴: 활동 후 악화"),
-            "TRM": ("외상형", "외상/손상 패턴: 급성 발병, 부상 후 통증"),
-            "INF": ("염증형", "염증성 패턴: 붓기, 열감, 전신 증상 가능"),
-            "STF": ("경직형", "동결/경직 패턴: 가동범위 제한, 야간통"),
+            "OA": ("퇴행성형", "무릎 연골이 약해지고 아침에 뻣뻣하며 점진적으로 통증이 나타나는 패턴"),
+            "OVR": ("과사용형", "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴"),
+            "TRM": ("외상형", "넘어짐·비틀림 등 외상 이후 급성 통증과 붓기가 동반되는 패턴"),
+            "INF": ("염증형", "염증·붓기·열감이 있고 아침 강직이 두드러지는 패턴"),
+            "STF": ("경직형", "가동범위 제한과 야간통이 특징인 동결/경직 패턴"),
         }
         diag_type, diag_desc = bucket_type_map.get(
             output.final_bucket, (output.final_bucket, "해당 버킷 설명을 준비 중입니다.")
         )
 
-        # 태그는 가벼운 기본값으로 구성
-        tags = output.weight_ranking[:3] if output.weight_ranking else []
-        if not tags:
-            tags = [output.final_bucket]
+        # 버킷별 기본 태그 (앱 표시용)
+        bucket_tags = {
+            "OA": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"],
+            "OVR": ["운동량 증가", "앞무릎 통증", "근육 불균형 교정"],
+            "TRM": ["붓기·급성통증", "연골 약화", "근력 강화"],
+            "INF": ["염증 반응", "아침 강직", "가벼운 강화 운동"],
+            "STF": ["야간통", "가동범위 제한", "스트레칭/가동성"],
+        }
+        tags = bucket_tags.get(output.final_bucket, [output.final_bucket])
 
         return cls(
             body_part=output.body_part,
