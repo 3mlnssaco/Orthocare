@@ -406,3 +406,69 @@ class UnifiedResponse(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
+        json_schema_extra = {
+            "example": {
+                "request_id": "34568a35-9810-4afa-9cda-7805a8807550",
+                "user_id": "demo_user_001",
+                "survey_data": {
+                    "demographics": {
+                        "age": 55,
+                        "sex": "female",
+                        "height_cm": 160,
+                        "weight_kg": 65
+                    },
+                    "body_parts": [
+                        {
+                            "code": "knee",
+                            "primary": True,
+                            "side": "both",
+                            "symptoms": [
+                                "pain_medial",
+                                "stiffness_morning",
+                                "stairs_down"
+                            ],
+                            "nrs": 6,
+                            "red_flags_checked": []
+                        }
+                    ],
+                    "natural_language": {
+                        "chief_complaint": "오른쪽 무릎 안쪽이 아파요",
+                        "pain_description": "계단 내려갈 때 뻐근하고 아침에 30분 정도 뻣뻣합니다",
+                        "history": "무리하게 운동한 이후부터 아파요"
+                    },
+                    "physical_score": None,
+                    "raw_responses": {
+                        "painDuration": "아침에 30분 정도",
+                        "painSensation": "뻐근/묵직",
+                        "painStarted": "무리하게 운동한 이후부터 아파요",
+                        "painTrigger": "오래 걷거나 서있을 때"
+                    }
+                },
+                "diagnosis": {
+                    "body_part": "knee",
+                    "final_bucket": "OA",
+                    "confidence": 0.75,
+                    "diagnosis_percentage": 75,
+                    "diagnosis_type": "퇴행성형",
+                    "diagnosis_description": "퇴행성 관절염 패턴: 아침 뻣뻣함, 점진적 통증",
+                    "tags": ["OA", "OVR", "INF"],
+                    "bucket_scores": {
+                        "OA": 6,
+                        "OVR": 3,
+                        "INF": 2,
+                        "TRM": 0.5
+                    },
+                    "weight_ranking": ["OA", "OVR", "INF", "TRM"],
+                    "search_ranking": ["OA", "OVR"],
+                    "evidence_summary": "55세 여성 환자는 무릎의 내측 통증, 아침 뻣뻣함, 계단 내려갈 때 통증을 호소합니다. 이는 퇴행성관절염의 전형적인 증상입니다.",
+                    "llm_reasoning": "환자의 나이와 증상은 퇴행성관절염(OA)의 전형적인 프로필과 일치합니다. 특히, 아침 뻣뻣함과 계단 내려갈 때의 통증은 OA의 일반적인 증상입니다.",
+                    "red_flag": None,
+                    "inferred_at": "2026-01-10T06:39:01.212125"
+                },
+                "exercise_plan": None,
+                "status": "success",
+                "message": None,
+                "processed_at": "2026-01-10T06:39:01.214129",
+                "processing_time_ms": 4942
+            }
+        }
