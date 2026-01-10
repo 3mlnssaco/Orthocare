@@ -99,7 +99,7 @@ class BucketArbitrator:
             discrepancy=discrepancy,
             evidence_summary=result["evidence_summary"],
             llm_reasoning=result["reasoning"],
-            red_flag=red_flag or result["red_flag"],
+            red_flag=None,  # 앱에서만 레드플래그 처리
         )
 
     def _detect_discrepancy(
@@ -175,8 +175,7 @@ class BucketArbitrator:
                     "content": (
                         f"당신은 정형외과 {bp_config.display_name} 전문의입니다. "
                         "환자의 증상과 근거 자료를 분석하여 가장 가능성 높은 "
-                        "진단 버킷을 결정합니다. 레드 플래그가 의심되면 "
-                        "possible_red_flags와 red_flag_action에 포함하세요. "
+                        "진단 버킷을 결정합니다. "
                         "반드시 JSON 형식으로 응답하세요."
                     ),
                 },
@@ -217,24 +216,11 @@ class BucketArbitrator:
         if final_bucket not in valid_buckets:
             final_bucket = weight_ranking[0]
 
-        # LLM이 제안한 red flag 정리 (룰 기반이 없을 때 활용)
-        llm_red_flags = result.get("possible_red_flags") or []
-        action = result.get("red_flag_action", "").strip()
-        red_flag_result = None
-        if llm_red_flags:
-            red_flag_result = RedFlagResult(
-                triggered=True,
-                flags=llm_red_flags,
-                messages=llm_red_flags,
-                action=action or "임상 진료 및 추가 검사가 필요할 수 있습니다.",
-            )
-
         return {
             "final_bucket": final_bucket,
             "confidence": result.get("confidence", 0.7),
             "evidence_summary": result.get("evidence_summary", ""),
             "reasoning": full_reasoning,
-            "red_flag": red_flag_result,
         }
 
     def _build_prompt(
@@ -401,10 +387,6 @@ class BucketArbitrator:
 ## {bp_config.display_name} 진단 버킷 설명
 {bucket_descriptions_str}
 
-## 레드 플래그 추론 가이드
-- 자연어/설문에 급성 붓기/열감, 갑작스런 힘 빠짐·저림, 발열/오한, 걷기 불가 수준의 통증, 밤에도 지속되는 통증, 주사 직후 심한 통증 등이 보이면 중증 신호로 간주
-- 발견되면 possible_red_flags에 텍스트로 적고, 환자에게 안내할 조치(즉시 진료 권고 등)를 red_flag_action에 요약
-
 ## 요청
 위 정보를 종합하여 가장 가능성 높은 진단 버킷을 결정하세요.
 
@@ -412,9 +394,7 @@ class BucketArbitrator:
 1. 인용은 반드시 위 "검색된 근거 자료"에서만 해야 합니다
 2. 검색 결과가 없으면 "검색된 근거 자료 없음"이라고 명시하세요
 
-**중요**:
-- final_bucket은 반드시 {valid_buckets_str} 중 하나만 선택하세요. 복수 선택 금지.
-- 아래 "레드 플래그 추론"을 읽고 가능성이 있으면 possible_red_flags에 텍스트로 적으세요.
+**중요**: final_bucket은 반드시 {valid_buckets_str} 중 하나만 선택하세요. 복수 선택 금지.
 
 다음 JSON 형식으로 응답하세요:
 {{
@@ -422,8 +402,6 @@ class BucketArbitrator:
     "confidence": 0.75,
     "evidence_summary": "진단 근거 요약 (2-3문장)",
     "reasoning": "판단 근거 설명",
-    "possible_red_flags": ["의심되는 레드 플래그 예: 갑작스런 붓기/열감"],
-    "red_flag_action": "레드 플래그 발견 시 조치 요약 (예: 즉시 전문의 진료 권고)",
     "citations": [
         {{
             "title": "논문 제목",
