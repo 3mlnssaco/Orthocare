@@ -58,6 +58,15 @@ app.add_middleware(
 )
 
 
+def _error_payload(error: Exception, hint: str = None) -> dict:
+    """오류 응답용 페이로드 (디버깅 도움용)"""
+    return {
+        "error": str(error),
+        "type": type(error).__name__,
+        "hint": hint,
+    }
+
+
 @app.get("/health")
 async def health_check():
     """헬스 체크"""
@@ -78,12 +87,20 @@ async def recommend_exercises(request: ExerciseRecommendationInput):
         exercise_output = orchestration_service.exercise_pipeline.run(request)
         return exercise_output
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=_error_payload(
+                e,
+                hint="필수 필드(body_part/bucket/physical_score/nrs 등)와 값 범위를 확인하세요.",
+            ),
+        )
     except Exception as e:
-        error_detail = f"{type(e).__name__}: {str(e)}"
         raise HTTPException(
             status_code=500,
-            detail=f"처리 실패: {error_detail}"
+            detail=_error_payload(
+                e,
+                hint="환경 변수(OPENAI/PINECONE) 또는 외부 서비스 연결 상태를 확인하세요.",
+            ),
         )
 
 
@@ -97,14 +114,20 @@ async def diagnose_only(request: UnifiedRequest):
         result = orchestration_service.process_diagnosis_only(request)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=_error_payload(
+                e,
+                hint="필수 필드(demographics/body_parts/symptoms/nrs)와 증상 코드 매핑을 확인하세요.",
+            ),
+        )
     except Exception as e:
-        import traceback
-        error_detail = f"{type(e).__name__}: {str(e)}"
-        # 디버깅을 위해 더 자세한 에러 정보 포함 (프로덕션에서는 제거 가능)
         raise HTTPException(
             status_code=500,
-            detail=f"처리 실패: {error_detail}"
+            detail=_error_payload(
+                e,
+                hint="환경 변수(OPENAI/PINECONE) 또는 외부 서비스 연결 상태를 확인하세요.",
+            ),
         )
 
 
