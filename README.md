@@ -1139,9 +1139,10 @@ POST /api/v1/recommend-exercises
 
 선택:
 - `request_id`
-- `natural_language` (chief_complaint/pain_description/history)
+- `natural_language` (chief_complaint/pain_description/history) ※ 자유 텍스트, 없어도 됨
 - `raw_survey_responses`
-- `physical_score.total_score` (운동 추천 시 전달)
+- `physical_score.total_score` (운동 추천 시에만 전달; 버킷 추론만이면 생략)
+- `options` (운동 추천용 옵션; 버킷 추론만이면 생략)
 
 최소 요청 (버킷 추론만):
 ```json

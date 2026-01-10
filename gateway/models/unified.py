@@ -200,9 +200,6 @@ class UnifiedRequest(BaseModel):
                         "red_flags_checked": []
                     }
                 ],
-                "physical_score": {
-                    "total_score": 12
-                },
                 "natural_language": {
                     "chief_complaint": "오른쪽 무릎 안쪽이 아파요",
                     "pain_description": "계단 내려갈 때 뻐근하고 아침에 30분 정도 뻣뻣합니다",
@@ -213,11 +210,6 @@ class UnifiedRequest(BaseModel):
                     "painTrigger": "오래 걷거나 서있을 때",
                     "painSensation": "뻐근/묵직",
                     "painDuration": "아침에 30분 정도"
-                },
-                "options": {
-                    "include_exercises": False,
-                    "exercise_days": 3,
-                    "skip_exercise_on_red_flag": True
                 }
             }
         }
