@@ -8,7 +8,9 @@ class Demographics(BaseModel):
     """인구통계학적 정보"""
 
     age: int = Field(..., ge=10, le=100, description="나이")
-    sex: Literal["male", "female"] = Field(..., description="성별")
+    sex: Literal["male", "female", "prefer_not_to_say"] = Field(
+        ..., description="성별 (male/female/prefer_not_to_say)"
+    )
     height_cm: float = Field(..., ge=100, le=250, description="키 (cm)")
     weight_kg: float = Field(..., ge=30, le=200, description="몸무게 (kg)")
 

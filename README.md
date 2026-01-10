@@ -1134,7 +1134,7 @@ POST /api/v1/recommend-exercises
 
 필수 (버킷 추론 /api/v1/diagnose):
 - `user_id`
-- `demographics` (age/sex/height_cm/weight_kg)
+- `demographics` (age/sex/height_cm/weight_kg)  // sex: male/female/prefer_not_to_say
 - `body_parts[]` (code/side/symptoms/nrs)
 
 선택:
