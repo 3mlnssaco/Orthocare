@@ -108,33 +108,29 @@ OrthoCare는 자연어 증상 입력을 분석하여 근골격계 통증의 원�
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        Gateway Service (port 8000)                       │
-│                    POST /api/v1/diagnose                                 │
-│                    POST /api/v1/recommend-exercises                      │
+│                    POST /api/v1/diagnose        (버킷 추론만)             │
+│                    POST /api/v1/recommend-exercises (운동 추천만)         │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   📱 App Request (JSON)                                                 │
-│   {demographics, body_parts, physical_score, options}                   │
+│   버킷 추론: {demographics, body_parts[, natural_language, raw_survey]} │
+│   운동 추천: {bucket, physical_score, exercise_days, ...}               │
 │                              ↓                                          │
 │   ┌─────────────────────────────────────────────────────────┐          │
 │   │              OrchestrationService                        │          │
 │   │                                                         │          │
-│   │   Step 1: Bucket Inference Pipeline                     │          │
+│   │   Bucket Inference Pipeline (단독 호출)                 │          │
 │   │           ├─ Weight Calculation                         │          │
 │   │           ├─ Evidence Search (Pinecone)                 │          │
 │   │           └─ LLM Arbitration                            │          │
-│   │                         ↓                               │          │
-│   │   Step 2: Red Flag Check                                │          │
-│   │           ├─ if red_flag → skip exercises               │          │
-│   │           └─ else → continue                            │          │
-│   │                         ↓                               │          │
-│   │   Step 3: Exercise Recommendation Pipeline              │          │
+│   │                                                         │          │
+│   │   Exercise Recommendation Pipeline (단독 호출)          │          │
 │   │           ├─ Bucket-based Filtering                     │          │
-│   │           ├─ Personalization (context from Step 1)      │          │
+│   │           ├─ Personalization                            │          │
 │   │           └─ LLM Recommendation                         │          │
 │   └─────────────────────────────────────────────────────────┘          │
 │                              ↓                                          │
-│   📤 Unified Response                                                   │
-│   {survey_data, diagnosis, exercise_plan, status}                       │
+│   📤 Response (각 엔드포인트 별도)                                      │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -221,7 +217,7 @@ body_part.code = "shoulder"
 
 ---
 
-## 3. 프로젝트 구조
+## 3. 프로젝트 구조 (주요 포인트만)
 
 ```
 Orthocare/
@@ -1123,19 +1119,19 @@ POST /api/v1/recommend-exercises
 
 ---
 
-### 7.3 Gateway 통합 API (앱용, Port 8000)
+### 7.3 Gateway API (앱용, Port 8000)
 
 ```bash
 POST /api/v1/diagnose
 POST /api/v1/recommend-exercises
 ```
 
-#### Request (UnifiedRequest)
+#### Request - 버킷 추론 `/api/v1/diagnose`
 
-필수 (버킷 추론 /api/v1/diagnose):
+필수:
 - `user_id`
 - `demographics` (age/sex/height_cm/weight_kg)  // sex: male/female/prefer_not_to_say
-- `body_parts[]` (code/side/symptoms/nrs)
+- `body_parts[]` (code/side/symptoms/nrs)  ※ red_flags_checked는 생략 가능
 
 선택:
 - `request_id`
@@ -1160,19 +1156,18 @@ POST /api/v1/recommend-exercises
       "primary": true,
       "side": "both",
       "symptoms": ["pain_medial", "stiffness_morning"],
-      "nrs": 6,
-      "red_flags_checked": []
+      "nrs": 6
     }
   ],
 }
 ```
 
-#### Response (UnifiedResponse)
+#### Response - 버킷 추론
 
 주요 필드:
 - `survey_data` (요청 원본 저장용)
-- `diagnosis` (final_bucket, confidence, evidence_summary, red_flag 등)
-- `exercise_plan` (없으면 null)
+- `diagnosis` (final_bucket, confidence, evidence_summary)
+- `exercise_plan` (없으면 null; 버킷 추론만이면 null)
 - `status`, `message`, `processing_time_ms`
 
 최소 응답 예시:
@@ -1190,6 +1185,47 @@ POST /api/v1/recommend-exercises
   "processing_time_ms": 8000
 }
 ```
+
+#### Request - 운동 추천 `/api/v1/recommend-exercises`
+
+필수:
+- `user_id`
+- `bucket` (버킷 추론 결과)
+- `body_part`
+- `physical_score.total_score` (4~16)
+- `exercise_days` (주당 운동 일수)
+
+선택:
+- `nrs`, `include_exercises`, `skip_exercise_on_red_flag`
+- 사전평가 4문항 문자열(`squatResponse/pushupResponse/stepupResponse/plankResponse`)
+- 이전 피드백(`rpeResponse/muscleStimulationResponse/sweatResponse`)은 2회차부터 전달
+
+예시:
+```json
+{
+  "user_id": "user_001",
+  "bucket": "OA",
+  "body_part": "knee",
+  "nrs": 4,
+  "physical_score": {"total_score": 12},
+  "exercise_days": 3,
+  "squatResponse": "10개 가능",
+  "pushupResponse": "무릎대고 5개",
+  "stepupResponse": "한쪽 10회",
+  "plankResponse": "30초",
+  "rpeResponse": null,
+  "muscleStimulationResponse": null,
+  "sweatResponse": null
+}
+```
+
+#### Response - 운동 추천
+
+주요 필드:
+- `exercise_plan` → exercises[], routine_order, total_duration_min, difficulty_level
+- `llm_reasoning`
+
+응답 예시는 [운동 추천 스키마](#7-2-운동-추천-api-요약)를 따릅니다.
 
 ---
 
