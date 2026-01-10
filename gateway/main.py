@@ -216,8 +216,8 @@ async def diagnose_only(request: UnifiedRequest):
     운동 추천 없이 버킷 추론 결과만 반환
     """
     try:
-        enriched = _enrich_symptoms_from_text(request)
-        result = orchestration_service.process_diagnosis_only(enriched)
+        # 앱 입력을 그대로 사용해 추론 (자동 매핑/변환 없음)
+        result = orchestration_service.process_diagnosis_only(request)
         return result
     except ValueError as e:
         raise HTTPException(
