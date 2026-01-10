@@ -129,7 +129,12 @@ class ExerciseRecommender:
                 (c for c in candidates if c.get("id") == ex_id), None
             )
             if exercise:
-                reason = result.get("reasons", {}).get(ex_id, "추천됨")
+                # LLM 이유가 없으면 기본 템플릿으로 보강
+                reason = result.get("reasons", {}).get(ex_id)
+                if not reason:
+                    fn = ", ".join(exercise.get("function_tags", [])[:2]) or "기능 운동"
+                    diff = exercise.get("difficulty", "medium")
+                    reason = f"{exercise.get('name_kr', '')}: {fn}에 좋고 현재 난이도({diff})에서 무릎 통증을 악화시키지 않아 권장"
                 match_score = result.get("scores", {}).get(ex_id, 0.8)
 
                 recommendations.append(
@@ -235,6 +240,11 @@ class ExerciseRecommender:
 - 비만(BMI 30+): 체중 부하 적은 운동 우선
 - 고통증(NRS 7+): 저강도, 가동성 위주
 - 젊은 층(40-): 근력 운동 비중 높게
+
+## reason 작성 규칙
+- 각 운동마다 1~2문장으로 작성
+- 포함 필수: (a) 어떤 기능/근육을 강화하는지, (b) 통증/나이/BMI/버킷(OA/OVR/TRM/INF/대상 부위)에 왜 맞는지, (c) 안전성/강도 배려 한 줄
+- 예시: "브리지: 둔근/햄스트링 강화로 무릎 안정성에 도움, OA 환자이며 NRS 5로 저충격 코어 운동이 적합"
 
 ## 요청
 환자에게 **최적화된** 운동 {settings.min_exercises}~{settings.max_exercises}개를 선택하세요.
