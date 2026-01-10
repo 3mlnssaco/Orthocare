@@ -229,9 +229,40 @@ class DiagnosisResult(BaseModel):
     red_flag: Optional[RedFlagResult] = None
     inferred_at: datetime
 
+    # 앱 호환 필드 (선택)
+    diagnosis_percentage: Optional[int] = Field(
+        default=None, description="진단 확률 (0-100)"
+    )
+    diagnosis_type: Optional[str] = Field(
+        default=None, description="진단 유형 (예: 퇴행성형/과사용형/외상형/염증형)"
+    )
+    diagnosis_description: Optional[str] = Field(
+        default=None, description="진단 설명 (사용자용)"
+    )
+    tags: Optional[List[str]] = Field(
+        default=None, description="특징 태그 (최소 3개 권장)"
+    )
+
     @classmethod
     def from_bucket_output(cls, output: BucketInferenceOutput) -> "DiagnosisResult":
         """BucketInferenceOutput에서 생성"""
+        # 버킷 → 유형/설명 매핑 (앱 표시용)
+        bucket_type_map = {
+            "OA": ("퇴행성형", "퇴행성 관절염 패턴: 아침 뻣뻣함, 점진적 통증"),
+            "OVR": ("과사용형", "과사용/반복 사용 패턴: 활동 후 악화"),
+            "TRM": ("외상형", "외상/손상 패턴: 급성 발병, 부상 후 통증"),
+            "INF": ("염증형", "염증성 패턴: 붓기, 열감, 전신 증상 가능"),
+            "STF": ("경직형", "동결/경직 패턴: 가동범위 제한, 야간통"),
+        }
+        diag_type, diag_desc = bucket_type_map.get(
+            output.final_bucket, (output.final_bucket, "해당 버킷 설명을 준비 중입니다.")
+        )
+
+        # 태그는 가벼운 기본값으로 구성
+        tags = output.weight_ranking[:3] if output.weight_ranking else []
+        if not tags:
+            tags = [output.final_bucket]
+
         return cls(
             body_part=output.body_part,
             final_bucket=output.final_bucket,
@@ -243,6 +274,10 @@ class DiagnosisResult(BaseModel):
             llm_reasoning=output.llm_reasoning,
             red_flag=output.red_flag,
             inferred_at=output.inferred_at,
+            diagnosis_percentage=int(round(output.confidence * 100)),
+            diagnosis_type=diag_type,
+            diagnosis_description=diag_desc,
+            tags=tags,
         )
 
 
@@ -259,6 +294,15 @@ class ExercisePlanResult(BaseModel):
     personalization_note: Optional[str] = None
     recommended_at: datetime
 
+    # 앱 호환 필드 (선택)
+    routine_date: Optional[str] = Field(
+        default=None, description="루틴 날짜 (YYYY-MM-DD)"
+    )
+    exercises_app: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="앱 스펙 호환 운동 목록 (exerciseId/nameKo/recommendedSets 등)"
+    )
+
     @classmethod
     def from_exercise_output(
         cls,
@@ -266,6 +310,22 @@ class ExercisePlanResult(BaseModel):
         personalization_note: str = None,
     ) -> "ExercisePlanResult":
         """ExerciseRecommendationOutput에서 생성"""
+        # 앱 호환용 exercise 필드 생성
+        exercises_app = []
+        for idx, ex in enumerate(output.exercises, start=1):
+            ex_dict = ex.model_dump()
+            exercises_app.append(
+                {
+                    "exerciseId": ex_dict.get("exercise_id"),
+                    "nameKo": ex_dict.get("name_kr"),
+                    "difficulty": ex_dict.get("difficulty"),
+                    "recommendedSets": ex_dict.get("sets"),
+                    "recommendedReps": ex_dict.get("reps"),
+                    "exerciseOrder": idx,
+                    "videoUrl": ex_dict.get("youtube"),
+                }
+            )
+
         return cls(
             body_part=output.body_part,
             bucket=output.bucket,
@@ -276,6 +336,8 @@ class ExercisePlanResult(BaseModel):
             llm_reasoning=output.llm_reasoning,
             personalization_note=personalization_note,
             recommended_at=output.recommended_at,
+            routine_date=output.recommended_at.date().isoformat(),
+            exercises_app=exercises_app,
         )
 
 
