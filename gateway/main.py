@@ -254,26 +254,55 @@ def _map_bucket(value: str) -> str:
 def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecommendationInput:
     extras = request.model_extra or {}
 
-    bucket_raw = extras.get("bucket") or extras.get("diagnosis_type") or extras.get("diagnosisType")
-    body_part_raw = extras.get("body_part") or extras.get("bodyPart") or extras.get("painArea")
-    demo_raw = extras.get("demographics")
+    bucket_raw = (
+        request.bucket
+        or request.diagnosis_type
+        or extras.get("bucket")
+        or extras.get("diagnosis_type")
+        or extras.get("diagnosisType")
+    )
+    body_part_raw = (
+        request.body_part
+        or request.pain_area
+        or extras.get("body_part")
+        or extras.get("bodyPart")
+        or extras.get("painArea")
+    )
+    demo_raw = request.demographics or extras.get("demographics")
 
     if not bucket_raw or not body_part_raw:
         raise ValueError("bucket/body_part 누락: 백엔드에서 추가 전달 필요")
 
     if demo_raw:
-        demographics = Demographics(**demo_raw)
+        if hasattr(demo_raw, "model_dump"):
+            demo_raw = demo_raw.model_dump()
+        if not isinstance(demo_raw, dict):
+            raise ValueError("demographics 형식 오류: dict 형태 필요")
+        demo_age = demo_raw.get("age")
+        demo_sex = demo_raw.get("sex") or demo_raw.get("gender")
+        demo_height = demo_raw.get("height_cm") or demo_raw.get("height")
+        demo_weight = demo_raw.get("weight_kg") or demo_raw.get("weight")
+        if demo_age is None or demo_sex is None or demo_height is None or demo_weight is None:
+            raise ValueError("demographics 누락: age/sex/height_cm/weight_kg 필요")
+        demographics = Demographics(
+            age=demo_age,
+            sex=_map_gender(str(demo_sex)),
+            height_cm=demo_height,
+            weight_kg=demo_weight,
+        )
     else:
-        birth_date = extras.get("birthDate")
-        gender = extras.get("gender")
-        height = extras.get("height")
-        weight = extras.get("weight")
-        if not all([birth_date, gender, height, weight]):
-            raise ValueError("demographics 누락: birthDate/gender/height/weight 필요")
-        age = _age_from_birthdate(date.fromisoformat(birth_date))
+        age = request.age or extras.get("age")
+        gender = request.gender or extras.get("gender")
+        height = request.height or extras.get("height")
+        weight = request.weight or extras.get("weight")
+        birth_date = request.birth_date or extras.get("birthDate")
+        if age is None and birth_date:
+            age = _age_from_birthdate(date.fromisoformat(str(birth_date)))
+        if age is None or gender is None or height is None or weight is None:
+            raise ValueError("demographics 누락: age(or birthDate)/gender/height/weight 필요")
         demographics = Demographics(
             age=age,
-            sex=_map_gender(gender),
+            sex=_map_gender(str(gender)),
             height_cm=height,
             weight_kg=weight,
         )
@@ -346,6 +375,12 @@ async def recommend_exercises(
             "rpeResponse": "적당함",
             "muscleStimulationResponse": "중간",
             "sweatResponse": "보통",
+            "bucket": "OA",
+            "bodyPart": "knee",
+            "age": 26,
+            "gender": "FEMALE",
+            "height": 170,
+            "weight": 65,
         },
     )
 ):

@@ -954,6 +954,11 @@ Full 응답 예시:
 
 참고: 최초 운동 추천 시 `rpeResponse/muscleStimulationResponse/sweatResponse`는 null로 전달.
 
+백엔드 추가 필수:
+- `bucket` (OA/OVR/TRM/INF/STF)
+- `bodyPart` (knee/shoulder/back/neck/ankle)
+- 인구통계: `age` + `gender` + `height` + `weight` (birthDate 대신 age 사용 가능)
+
 요청 예시:
 ```json
 {
@@ -966,7 +971,13 @@ Full 응답 예시:
   "plankResponse": "30초",
   "rpeResponse": null,
   "muscleStimulationResponse": null,
-  "sweatResponse": null
+  "sweatResponse": null,
+  "bucket": "OA",
+  "bodyPart": "knee",
+  "age": 26,
+  "gender": "FEMALE",
+  "height": 170,
+  "weight": 65
 }
 ```
 

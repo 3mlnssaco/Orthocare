@@ -1,7 +1,7 @@
 """App-facing request models for Gateway endpoints."""
 
 from datetime import date
-from typing import Optional, Literal, List, Union
+from typing import Optional, Literal, List, Union, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -85,7 +85,6 @@ class AppExerciseRequest(BaseModel):
         populate_by_name=True,
         extra="allow",
         json_schema_extra={
-            "additionalProperties": False,
             "example": {
                 "userId": 1,
                 "routineDate": "2025-01-11",
@@ -96,7 +95,13 @@ class AppExerciseRequest(BaseModel):
                 "plankResponse": "30초",
                 "rpeResponse": "적당함",
                 "muscleStimulationResponse": "중간",
-                "sweatResponse": "보통"
+                "sweatResponse": "보통",
+                "bucket": "OA",
+                "bodyPart": "knee",
+                "age": 26,
+                "gender": "FEMALE",
+                "height": 170,
+                "weight": 65
             }
         },
     )
@@ -123,6 +128,41 @@ class AppExerciseRequest(BaseModel):
     )
     sweat_response: Optional[str] = Field(
         ..., alias="sweatResponse", description="운동 중 땀은 어느정도 났나요? (null 허용)"
+    )
+
+    # 백엔드에서 추가로 전달 (필수)
+    bucket: Optional[str] = Field(
+        default=None,
+        description="(백엔드) 진단 버킷 코드 (OA/OVR/TRM/INF/STF) 또는 diagnosisType",
+    )
+    diagnosis_type: Optional[str] = Field(
+        default=None,
+        alias="diagnosisType",
+        description="(백엔드) 진단 유형 텍스트 (퇴행성형/과사용형/외상형/염증형/경직형)",
+    )
+    body_part: Optional[str] = Field(
+        default=None,
+        alias="bodyPart",
+        description="(백엔드) 부위 코드 (knee/shoulder/back/neck/ankle)",
+    )
+    pain_area: Optional[str] = Field(
+        default=None,
+        alias="painArea",
+        description="(백엔드) 통증 부위 (한글 가능: 무릎/어깨/허리/목/발목)",
+    )
+    demographics: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="(백엔드) 인구통계 {age, sex(male/female/prefer_not_to_say), height_cm, weight_kg}",
+    )
+    age: Optional[int] = Field(default=None, description="(백엔드) 나이 (birthDate 대신 사용)")
+    gender: Optional[str] = Field(
+        default=None,
+        description="(백엔드) 성별 (MALE/FEMALE/PREFER_NOT_TO_SAY 또는 male/female)",
+    )
+    height: Optional[int] = Field(default=None, description="(백엔드) 키 (cm)")
+    weight: Optional[int] = Field(default=None, description="(백엔드) 몸무게 (kg)")
+    birth_date: Optional[date] = Field(
+        default=None, alias="birthDate", description="(백엔드) 생년월일 (YYYY-MM-DD)"
     )
 
 
