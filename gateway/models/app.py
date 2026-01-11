@@ -1,7 +1,7 @@
 """App-facing request models for Gateway endpoints."""
 
 from datetime import date
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Union
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -44,7 +44,7 @@ class AppDiagnoseRequest(BaseModel):
     pain_trigger: str = Field(..., alias="painTrigger", description="언제 통증이 더 심해지는지")
     pain_sensation: str = Field(..., alias="painSensation", description="어떤 느낌으로 아픈지")
     pain_duration: str = Field(..., alias="painDuration", description="통증 지속 시간")
-    red_flags: Optional[str] = Field(default=None, alias="redFlags", description="위험 신호")
+    red_flags: str = Field(..., alias="redFlags", description="위험 신호")
 
 class AppExerciseRequest(BaseModel):
     """앱 운동 추천 요청 스키마 (요구 필드만 노출)"""
@@ -76,11 +76,15 @@ class AppExerciseRequest(BaseModel):
     stepup_response: str = Field(..., alias="stepupResponse", description="스텝업 가능 횟수")
     plank_response: str = Field(..., alias="plankResponse", description="플랭크 가능 시간")
 
-    rpe_response: Optional[str] = Field(default=None, alias="rpeResponse")
-    muscle_stimulation_response: Optional[str] = Field(
-        default=None, alias="muscleStimulationResponse"
+    rpe_response: Optional[str] = Field(
+        ..., alias="rpeResponse", description="운동 끝난 후 몸은 어떠한가요?"
     )
-    sweat_response: Optional[str] = Field(default=None, alias="sweatResponse")
+    muscle_stimulation_response: Optional[str] = Field(
+        ..., alias="muscleStimulationResponse", description="오늘 내 근육은 어떻게 느꼈나요?"
+    )
+    sweat_response: Optional[str] = Field(
+        ..., alias="sweatResponse", description="운동 중 땀은 어느정도 났나요?"
+    )
 
 
 class AppExerciseItem(BaseModel):
@@ -90,7 +94,7 @@ class AppExerciseItem(BaseModel):
     name_ko: str = Field(..., alias="nameKo")
     difficulty: str
     recommended_sets: int = Field(..., alias="recommendedSets")
-    recommended_reps: int | str = Field(..., alias="recommendedReps")
+    recommended_reps: Union[int, str] = Field(..., alias="recommendedReps")
     exercise_order: int = Field(..., alias="exerciseOrder")
     video_url: Optional[str] = Field(default=None, alias="videoUrl")
 
