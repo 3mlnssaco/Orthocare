@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 from fastapi import FastAPI, HTTPException, Body
+from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 
 import sys
@@ -57,6 +58,77 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    try:
+        req = schema["paths"]["/api/v1/recommend-exercises"]["post"]["requestBody"]["content"]["application/json"]
+        req.pop("example", None)
+        req["examples"] = {
+            "initial": {
+                "summary": "초기 (사후 설문 없음)",
+                "value": {
+                    "userId": 1,
+                    "routineDate": "2025-01-11",
+                    "painLevel": 5,
+                    "squatResponse": "10개",
+                    "pushupResponse": "5개",
+                    "stepupResponse": "15개",
+                    "plankResponse": "30초",
+                    "rpeResponse": None,
+                    "muscleStimulationResponse": None,
+                    "sweatResponse": None,
+                    "bucket": "OA",
+                    "bodyPart": "knee",
+                    "age": 26,
+                    "gender": "FEMALE",
+                    "height": 170,
+                    "weight": 65,
+                    "physicalScore": {
+                        "totalScore": 12
+                    },
+                },
+            },
+            "after_feedback": {
+                "summary": "사후 설문 포함",
+                "value": {
+                    "userId": 1,
+                    "routineDate": "2025-01-11",
+                    "painLevel": 5,
+                    "squatResponse": "10개",
+                    "pushupResponse": "5개",
+                    "stepupResponse": "15개",
+                    "plankResponse": "30초",
+                    "rpeResponse": "적당함",
+                    "muscleStimulationResponse": "중간",
+                    "sweatResponse": "보통",
+                    "bucket": "OA",
+                    "bodyPart": "knee",
+                    "age": 26,
+                    "gender": "FEMALE",
+                    "height": 170,
+                    "weight": 65,
+                    "physicalScore": {
+                        "totalScore": 12
+                    },
+                },
+            },
+        }
+    except KeyError:
+        pass
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 # CORS 설정
 app.add_middleware(
