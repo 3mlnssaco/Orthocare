@@ -14,7 +14,7 @@ import re
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 
 import sys
@@ -332,7 +332,23 @@ async def health_check():
 
 
 @app.post("/api/v1/recommend-exercises", response_model=AppExerciseResponse)
-async def recommend_exercises(request: AppExerciseRequest):
+async def recommend_exercises(
+    request: AppExerciseRequest = Body(
+        ...,
+        example={
+            "userId": 1,
+            "routineDate": "2025-01-11",
+            "painLevel": 5,
+            "squatResponse": "10개",
+            "pushupResponse": "5개",
+            "stepupResponse": "15개",
+            "plankResponse": "30초",
+            "rpeResponse": None,
+            "muscleStimulationResponse": None,
+            "sweatResponse": None,
+        },
+    )
+):
     """운동 추천만 실행 (버킷 추론 생략)
 
     앱/백엔드에서 이미 버킷과 사전평가가 있을 때 사용

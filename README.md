@@ -837,22 +837,104 @@ POST /api/v1/recommend-exercises
 }
 ```
 
-#### Response - 버킷 추론
+#### Response - 버킷 추론 (앱에서 사용하는 필드)
 
-주요 필드:
-- `diagnosis` (diagnosisPercentage/diagnosisType/diagnosisDescription/tags 포함)
+앱 표시용으로 사용하는 필드만 정리:
+- `diagnosisPercentage`
+- `diagnosisType`
+- `diagnosisDescription`
+- `tags`
 
-최소 응답 예시:
+앱 표시용 예시:
 ```json
 {
-  "request_id": "uuid",
-  "user_id": "user_001",
   "diagnosis": {
     "diagnosisPercentage": 75,
     "diagnosisType": "퇴행성형",
     "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
     "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"]
   }
+}
+```
+
+#### Response - 버킷 추론 (추론 로그/저장용 Full)
+
+추론 과정/저장용으로 내려오는 전체 필드:
+- `request_id`, `user_id`
+- `survey_data` (demographics/body_parts/natural_language/raw_responses)
+- `diagnosis` (body_part/final_bucket/confidence/bucket_scores/weight_ranking/search_ranking/evidence_summary/llm_reasoning + 앱 표시용 필드)
+- `status`, `message`, `processed_at`, `processing_time_ms`
+
+Full 응답 예시:
+```json
+{
+  "request_id": "218a2b6c-da7d-4617-8b82-985ce8f6c7e4",
+  "user_id": "unknown",
+  "survey_data": {
+    "demographics": {
+      "age": 26,
+      "sex": "female",
+      "height_cm": 170,
+      "weight_kg": 65
+    },
+    "body_parts": [
+      {
+        "code": "knee",
+        "primary": true,
+        "side": "both",
+        "symptoms": [
+          "계단 내려갈 때",
+          "뻐근함",
+          "30분 이상",
+          "무리하게 운동한 이후부터 아파요"
+        ],
+        "nrs": 6,
+        "red_flags_checked": []
+      }
+    ],
+    "natural_language": {
+      "chief_complaint": "무릎 통증",
+      "pain_description": "계단 내려갈 때; 뻐근함; 30분 이상",
+      "history": "무리하게 운동한 이후부터 아파요"
+    },
+    "physical_score": null,
+    "raw_responses": {
+      "painArea": "무릎",
+      "affectedSide": "양쪽",
+      "painStartedDate": "무리하게 운동한 이후부터 아파요",
+      "painLevel": 6,
+      "painTrigger": "계단 내려갈 때",
+      "painSensation": "뻐근함",
+      "painDuration": "30분 이상",
+      "redFlags": ""
+    }
+  },
+  "diagnosis": {
+    "body_part": "knee",
+    "final_bucket": "OVR",
+    "confidence": 0.85,
+    "bucket_scores": {
+      "OA": 0,
+      "OVR": 0,
+      "TRM": 0,
+      "INF": 0
+    },
+    "weight_ranking": ["OA", "OVR", "TRM", "INF"],
+    "search_ranking": [],
+    "evidence_summary": "환자는 젊고, 무리한 운동 후 계단을 내려갈 때 뻐근함을 느끼며, 이는 과사용증후군의 전형적인 증상입니다.",
+    "llm_reasoning": "환자의 나이와 증상은 과사용증후군(OVR)에 잘 맞습니다.",
+    "red_flag": null,
+    "inferred_at": "2026-01-11T03:25:23.979948",
+    "diagnosisPercentage": 85,
+    "diagnosisType": "과사용형",
+    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴",
+    "tags": ["운동량 증가", "앞무릎 통증", "근육 불균형 교정"]
+  },
+  "exercise_plan": null,
+  "status": "success",
+  "message": null,
+  "processed_at": "2026-01-11T03:25:23.982246",
+  "processing_time_ms": 5527
 }
 ```
 
