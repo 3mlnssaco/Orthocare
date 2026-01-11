@@ -86,7 +86,7 @@
 
     "physical_assessment": {
       "_description": "신체 자가평가 4문항 - 성별/연령대별 기준 다름",
-      "_scoring": "각 문항 1~4점 → 총점 4~16점",
+      "_scoring": "사전평가 응답을 기반으로 GPT가 0~100으로 추정",
 
       "squat": {
         "question": "쉬지 않고 스쿼트를 최대 몇 개 할 수 있나요?",
@@ -125,13 +125,13 @@
     "physical_score": {
       "total_score": {
         "type": "integer",
-        "range": [4, 16],
-        "description": "신체 자가평가 총점 (4문항 × 1~4점)",
+        "range": [0, 100],
+        "description": "신체 자가평가 총점 (0-100, GPT 추정)",
         "derived_level": {
-          "D": "4-7점 (기능 저하)",
-          "C": "8-10점 (기본 기능)",
-          "B": "11-13점 (평균 이상)",
-          "A": "14-16점 (상위 근력)"
+          "D": "0-25점 (기능 저하)",
+          "C": "26-50점 (기본 기능)",
+          "B": "51-75점 (평균 이상)",
+          "A": "76-100점 (상위 근력)"
         },
         "exercise_variables": {
           "A": {"difficulty": ["low", "medium", "high"], "exercise_count": "7-8개", "intensity": "높음"},

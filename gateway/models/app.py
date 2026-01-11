@@ -63,6 +63,7 @@ class AppDiagnoseResponse(BaseModel):
                 "diagnosisPercentage": 72,
                 "diagnosisType": "OA",
                 "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
+                "physicalScore": 70,
             }
         },
     )
@@ -74,6 +75,7 @@ class AppDiagnoseResponse(BaseModel):
     diagnosis_description: str = Field(
         ..., alias="diagnosisDescription", description="진단 설명 (사용자용)"
     )
+    physical_score: int = Field(..., alias="physicalScore", description="신체 점수 (0-100)")
 
 
 class AppExerciseItem(BaseModel):
@@ -136,7 +138,7 @@ class AppExerciseRequest(BaseModel):
                 "gender": "FEMALE",
                 "height": 170,
                 "weight": 65,
-                "physicalScore": 12
+                "physicalScore": 70
             }
         },
     )
@@ -157,7 +159,7 @@ class AppExerciseRequest(BaseModel):
     physical_score: Optional[int] = Field(
         default=None,
         alias="physicalScore",
-        description="(백엔드) 신체 점수 (4-16)",
+        description="(백엔드) 신체 점수 (0-100)",
     )
     post_survey: Optional[AppPostSurvey] = Field(
         default=None,
@@ -220,9 +222,14 @@ class AppExerciseResponse(BaseModel):
     physical_score: Optional[int] = Field(
         default=None,
         alias="physicalScore",
-        description="신체 점수 (4-16)",
+        description="신체 점수 (0-100)",
     )
     exercises: List[AppExerciseItem]
+    recommendation_reason: Optional[str] = Field(
+        default=None,
+        alias="recommendationReason",
+        description="운동 추천 추론 이유 (요약)",
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -231,7 +238,7 @@ class AppExerciseResponse(BaseModel):
             "example": {
                 "userId": 1,
                 "routineDate": "2025-01-11",
-                "physicalScore": 12,
+                "physicalScore": 70,
                 "exercises": [
                     {
                         "exerciseId": "EX001",
@@ -251,7 +258,8 @@ class AppExerciseResponse(BaseModel):
                         "exerciseOrder": 2,
                         "videoUrl": "https://…"
                     }
-                ]
+                ],
+                "recommendationReason": "통증 수준과 신체 점수를 고려해 무릎 관절에 부담이 적은 강화 운동 위주로 구성했습니다."
             }
         },
     )

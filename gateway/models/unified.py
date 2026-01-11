@@ -146,7 +146,7 @@ class UnifiedRequest(BaseModel):
     # 운동 추천용 (선택이지만 운동 추천 시 필요)
     physical_score: Optional[PhysicalScore] = Field(
         default=None,
-        description="신체 점수 (운동 추천 시 필요)"
+        description="신체 점수 (0-100, 운동 추천 시 필요)"
     )
 
     # 자연어 입력 (선택)
@@ -243,9 +243,18 @@ class DiagnosisResult(BaseModel):
     diagnosis_description: Optional[str] = Field(
         default=None, alias="diagnosisDescription", description="진단 설명 (사용자용)"
     )
+    physical_score: Optional[int] = Field(
+        default=None,
+        alias="physicalScore",
+        description="신체 점수 (0-100)",
+    )
 
     @classmethod
-    def from_bucket_output(cls, output: BucketInferenceOutput) -> "DiagnosisResult":
+    def from_bucket_output(
+        cls,
+        output: BucketInferenceOutput,
+        physical_score: Optional[PhysicalScore] = None,
+    ) -> "DiagnosisResult":
         """BucketInferenceOutput에서 생성"""
         # 버킷 → 설명 매핑 (부위별)
         bucket_desc_map = {
@@ -266,6 +275,7 @@ class DiagnosisResult(BaseModel):
             output.final_bucket, "해당 버킷 설명을 준비 중입니다."
         )
         diag_type = output.final_bucket
+        physical_score_value = physical_score.total_score if physical_score else None
 
         return cls(
             body_part=output.body_part,
@@ -281,6 +291,7 @@ class DiagnosisResult(BaseModel):
             diagnosis_percentage=int(round(output.confidence * 100)),
             diagnosis_type=diag_type,
             diagnosis_description=diag_desc,
+            physical_score=physical_score_value,
         )
 
 

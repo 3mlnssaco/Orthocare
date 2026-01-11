@@ -109,7 +109,10 @@ class OrchestrationService:
         )
 
         # Step 4: 진단 결과 구성
-        diagnosis_result = DiagnosisResult.from_bucket_output(bucket_output)
+        diagnosis_result = DiagnosisResult.from_bucket_output(
+            bucket_output,
+            physical_score=request.physical_score,
+        )
 
         # Step 5: Red Flag 체크
         has_red_flag = bucket_output.has_red_flag
@@ -187,16 +190,7 @@ class OrchestrationService:
         # 신체 점수 (없으면 기본값)
         physical_score = request.physical_score
         if physical_score is None:
-            # NRS 기반 기본 레벨 추정
-            nrs = request.primary_nrs
-            if nrs >= 7:
-                physical_score = PhysicalScore(total_score=6)  # Level D
-            elif nrs >= 5:
-                physical_score = PhysicalScore(total_score=9)  # Level C
-            elif nrs >= 3:
-                physical_score = PhysicalScore(total_score=12)  # Level B
-            else:
-                physical_score = PhysicalScore(total_score=15)  # Level A
+            physical_score = PhysicalScore(total_score=50)
 
         # 운동 추천 입력 생성
         exercise_input = ExerciseRecommendationInput(

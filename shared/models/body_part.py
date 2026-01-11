@@ -13,25 +13,25 @@ class PhysicalScore(BaseModel):
     3. 계단 오르내리기 자신감 (1-4점)
     4. 걷기 지속 시간 (1-4점)
 
-    총점 범위: 4-16점
+    총점 범위: 0-100점
     """
 
-    total_score: int = Field(..., ge=4, le=16, description="총점 (4-16)")
+    total_score: int = Field(..., ge=0, le=100, description="총점 (0-100)")
 
     @property
     def level(self) -> Literal["A", "B", "C", "D"]:
         """
         점수에 따른 레벨 반환
-        - A: 14-16점 (상위 근력)
-        - B: 11-13점 (평균 이상)
-        - C: 8-10점 (기본 기능)
-        - D: 4-7점 (기능 저하)
+        - A: 76-100점 (상위 근력)
+        - B: 51-75점 (평균 이상)
+        - C: 26-50점 (기본 기능)
+        - D: 0-25점 (기능 저하)
         """
-        if self.total_score >= 14:
+        if self.total_score >= 76:
             return "A"
-        elif self.total_score >= 11:
+        elif self.total_score >= 51:
             return "B"
-        elif self.total_score >= 8:
+        elif self.total_score >= 26:
             return "C"
         else:
             return "D"
@@ -46,6 +46,7 @@ class PhysicalScore(BaseModel):
             "D": ["low"],
         }
         return level_map[self.level]
+
 
 
 class BodyPartInput(BaseModel):

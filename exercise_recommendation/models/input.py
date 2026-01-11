@@ -141,7 +141,7 @@ class ExerciseRecommendationInput(BaseModel):
         "user_id": "user_123",
         "body_part": "knee",
         "bucket": "OA",
-        "physical_score": {"total_score": 12},
+        "physical_score": {"total_score": 70},
         "demographics": {"age": 55, "sex": "male", ...},
         "nrs": 5,
         "previous_assessments": [...],
@@ -155,7 +155,7 @@ class ExerciseRecommendationInput(BaseModel):
     bucket: str = Field(..., description="버킷 추론 결과 (OA/OVR/TRM/INF)")
 
     # === 사전 평가 결과 ===
-    physical_score: PhysicalScore = Field(..., description="신체 점수 (Lv A/B/C/D)")
+    physical_score: PhysicalScore = Field(..., description="신체 점수 (0-100, Lv A/B/C/D)")
     demographics: Demographics = Field(..., description="인구통계학적 정보")
     nrs: int = Field(..., ge=0, le=10, description="통증 점수 (0-10)")
 
@@ -204,7 +204,7 @@ class ExerciseRecommendationInput(BaseModel):
                 "user_id": "user_ex_001",
                 "body_part": "knee",
                 "bucket": "OA",
-                "physical_score": {"total_score": 12},
+                "physical_score": {"total_score": 70},
                 "demographics": {
                     "age": 55,
                     "sex": "male",

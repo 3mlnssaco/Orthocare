@@ -843,6 +843,7 @@ POST /api/v1/recommend-exercises
 - `diagnosisPercentage`
 - `diagnosisType` (버킷 코드: OA/OVR/TRM/INF/STF)
 - `diagnosisDescription`
+- `physicalScore` (0-100, GPT 추정)
 
 버킷 구성 (부위별):
 - 무릎: `OA`, `OVR`, `TRM`, `INF`
@@ -855,6 +856,7 @@ POST /api/v1/recommend-exercises
     "diagnosisPercentage": 75,
     "diagnosisType": "OA",
     "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
+    "physicalScore": 70
   }
 }
 ```
@@ -956,11 +958,12 @@ Full 응답 예시:
 - 인구통계: `age` + `gender` + `height` + `weight` (birthDate 대신 age 사용 가능)
 
 백엔드 추가 선택:
-- `physicalScore` (4-16)  
-  없으면 서버가 4문항 응답으로 내부 계산
+- `physicalScore` (0-100)  
+  없으면 GPT가 사전평가 응답/통증/인구통계를 기반으로 추정
 - `postSurvey` (사후 설문 + 이전 루틴)
   - `rpeResponse`, `muscleStimulationResponse`, `sweatResponse`
   - `previousRoutine` (출력 양식 그대로)
+  - 전달되면 GPT가 신체 점수를 재평가하고 응답에 업데이트된 `physicalScore`를 반환
 
 요청 예시 (초기, 사후설문 없음):
 ```json
@@ -978,7 +981,7 @@ Full 응답 예시:
   "gender": "FEMALE",
   "height": 170,
   "weight": 65,
-  "physicalScore": 12
+  "physicalScore": 70
 }
 ```
 
@@ -1017,7 +1020,7 @@ Full 응답 예시:
   "gender": "FEMALE",
   "height": 170,
   "weight": 65,
-  "physicalScore": 12
+  "physicalScore": 70
 }
 ```
 
@@ -1026,15 +1029,16 @@ Full 응답 예시:
 주요 필드:
 - `userId`
 - `routineDate`
-- `physicalScore` (4-16)
+- `physicalScore` (0-100)
 - `exercises[]` (exerciseId/nameKo/difficulty/recommendedSets/recommendedReps/exerciseOrder/videoUrl)
+- `recommendationReason` (운동 추천 추론 이유 요약)
 
 응답 예시:
 ```json
 {
   "userId": 1,
   "routineDate": "2025-01-11",
-  "physicalScore": 12,
+  "physicalScore": 70,
   "exercises": [
     {
       "exerciseId": "EX001",
@@ -1054,7 +1058,8 @@ Full 응답 예시:
       "exerciseOrder": 2,
       "videoUrl": "https://…"
     }
-  ]
+  ],
+  "recommendationReason": "통증 수준과 신체 점수를 고려해 무릎 관절에 부담이 적은 강화 운동 위주로 구성했습니다."
 }
 ```
 
@@ -1078,7 +1083,7 @@ Full 응답 예시:
 | PainSurvey | painSensation | body_parts[0].symptoms | survey_mapping 변환 |
 | PainSurvey | painDuration | body_parts[0].symptoms | survey_mapping 변환 |
 | PainSurvey | redFlags | body_parts[0].red_flags_checked | red_flags 코드 |
-| ExerciseAbilitySurvey | squat/pushup/stepup/plank | physical_score.total_score | 4문항 합산(4-16) |
+| ExerciseAbilitySurvey | squat/pushup/stepup/plank | physicalScore | GPT 추정 (0-100) |
 
 권장: `raw_survey_responses`에 Dudduk 설문 원본을 저장하고,
 서버에서 `data/medical/{body_part}/survey_mapping.json` 기준으로 `symptoms` 생성.
@@ -1317,14 +1322,14 @@ OrthoCare 내부 `ExerciseRecommendationInput` 스키마를 그대로 사용합�
 
 ### 신체 점수 시스템
 
-**사전 평가 (4문항, 각 1~4점):**
+**신체 점수 (GPT 추정, 0-100):**
 
 | 레벨 | 점수 범위 | 운동 개수 | 난이도 |
 |------|----------|----------|--------|
-| **D** | 4-7점 | 3개 | low |
-| **C** | 8-10점 | 4개 | low-medium |
-| **B** | 11-13점 | 5개 | medium |
-| **A** | 14-16점 | 6개 | medium-high |
+| **D** | 0-25점 | 3개 | low |
+| **C** | 26-50점 | 4개 | low-medium |
+| **B** | 51-75점 | 5개 | medium |
+| **A** | 76-100점 | 6개 | medium-high |
 
 ### 사후 평가 (RPE 3문항)
 

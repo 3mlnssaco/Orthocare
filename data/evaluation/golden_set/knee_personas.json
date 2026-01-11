@@ -13,10 +13,10 @@
       "RED_FLAG": 2
     },
     "physical_score_levels": {
-      "D": "4-7점",
-      "C": "8-10점",
-      "B": "11-13점",
-      "A": "14-16점"
+      "D": "0-25점",
+      "C": "26-50점",
+      "B": "51-75점",
+      "A": "76-100점"
     }
   },
   "personas": [
@@ -32,24 +32,28 @@
           "height_cm": 158,
           "weight_kg": 68
         },
-        "physical_score": {"total_score": 8},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "both",
-          "nrs": 5,
-          "symptoms": [
-            "pain_bilateral",
-            "chronic",
-            "progressive",
-            "stairs_down",
-            "weight_bearing_pain",
-            "stiffness_morning",
-            "stiffness_improves",
-            "swelling"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 33
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "both",
+            "nrs": 5,
+            "symptoms": [
+              "pain_bilateral",
+              "chronic",
+              "progressive",
+              "stairs_down",
+              "weight_bearing_pain",
+              "stiffness_morning",
+              "stiffness_improves",
+              "swelling"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "양쪽 무릎이 다 아파요. 특히 계단 내려갈 때 너무 힘들어요.",
           "pain_description": "아침에 일어나면 뻣뻣하고 좀 움직이면 나아지는데, 오래 걸으면 또 아파요. 묵직하게 아픈 느낌이에요.",
@@ -58,11 +62,23 @@
           "additional_notes": "가끔 붓기도 해요."
         },
         "survey_responses": {
-          "Q1_location": ["both", "medial"],
-          "Q2_onset": ["gradual", "progressive_1month"],
+          "Q1_location": [
+            "both",
+            "medial"
+          ],
+          "Q2_onset": [
+            "gradual",
+            "progressive_1month"
+          ],
           "Q3_nrs": 5,
-          "Q4_aggravating": ["walking_standing", "stairs_down"],
-          "Q5_quality": ["heavy_dull", "morning_stiffness"],
+          "Q4_aggravating": [
+            "walking_standing",
+            "stairs_down"
+          ],
+          "Q5_quality": [
+            "heavy_dull",
+            "morning_stiffness"
+          ],
           "Q5_5_stiffness_duration": "under_30min",
           "Q6_red_flags": []
         }
@@ -85,22 +101,26 @@
           "height_cm": 172,
           "weight_kg": 88
         },
-        "physical_score": {"total_score": 10},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 4,
-          "symptoms": [
-            "pain_medial",
-            "chronic",
-            "squatting",
-            "stairs_down",
-            "after_walking",
-            "weight_bearing_pain"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 50
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 4,
+            "symptoms": [
+              "pain_medial",
+              "chronic",
+              "squatting",
+              "stairs_down",
+              "after_walking",
+              "weight_bearing_pain"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "오른쪽 무릎 안쪽이 은근히 아파요.",
           "pain_description": "쪼그려 앉거나 계단 내려갈 때 특히 아프고, 오래 걸으면 뻐근해져요.",
@@ -109,11 +129,22 @@
           "additional_notes": null
         },
         "survey_responses": {
-          "Q1_location": ["right", "medial"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "right",
+            "medial"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 4,
-          "Q4_aggravating": ["walking_standing", "stairs_down", "squatting"],
-          "Q5_quality": ["heavy_dull"],
+          "Q4_aggravating": [
+            "walking_standing",
+            "stairs_down",
+            "squatting"
+          ],
+          "Q5_quality": [
+            "heavy_dull"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -135,25 +166,29 @@
           "height_cm": 155,
           "weight_kg": 62
         },
-        "physical_score": {"total_score": 5},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "both",
-          "nrs": 7,
-          "symptoms": [
-            "pain_bilateral",
-            "chronic",
-            "progressive",
-            "mobility_limited",
-            "stairs_down",
-            "squatting",
-            "weight_bearing_pain",
-            "stiffness_morning",
-            "stiffness_improves"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 8
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "both",
+            "nrs": 7,
+            "symptoms": [
+              "pain_bilateral",
+              "chronic",
+              "progressive",
+              "mobility_limited",
+              "stairs_down",
+              "squatting",
+              "weight_bearing_pain",
+              "stiffness_morning",
+              "stiffness_improves"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "양쪽 무릎이 너무 아파서 생활이 힘들어요.",
           "pain_description": "계단은 거의 못 내려가고, 앉았다 일어나기도 힘들어요. 아침에 특히 굳어 있어요.",
@@ -162,11 +197,25 @@
           "additional_notes": "쪼그려 앉기가 거의 불가능해요."
         },
         "survey_responses": {
-          "Q1_location": ["both", "medial"],
-          "Q2_onset": ["gradual", "progressive_1month"],
+          "Q1_location": [
+            "both",
+            "medial"
+          ],
+          "Q2_onset": [
+            "gradual",
+            "progressive_1month"
+          ],
           "Q3_nrs": 7,
-          "Q4_aggravating": ["walking_standing", "stairs_down", "squatting", "cross_legged"],
-          "Q5_quality": ["heavy_dull", "morning_stiffness"],
+          "Q4_aggravating": [
+            "walking_standing",
+            "stairs_down",
+            "squatting",
+            "cross_legged"
+          ],
+          "Q5_quality": [
+            "heavy_dull",
+            "morning_stiffness"
+          ],
           "Q5_5_stiffness_duration": "under_30min",
           "Q6_red_flags": []
         }
@@ -189,22 +238,26 @@
           "height_cm": 175,
           "weight_kg": 105
         },
-        "physical_score": {"total_score": 7},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "both",
-          "nrs": 6,
-          "symptoms": [
-            "pain_bilateral",
-            "chronic",
-            "weight_bearing_pain",
-            "stairs_down",
-            "squatting",
-            "swelling"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 25
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "both",
+            "nrs": 6,
+            "symptoms": [
+              "pain_bilateral",
+              "chronic",
+              "weight_bearing_pain",
+              "stairs_down",
+              "squatting",
+              "swelling"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "무릎 양쪽 다 아프고 가끔 부어요.",
           "pain_description": "서 있거나 걸을 때 무릎에 하중이 느껴지면서 아파요. 계단이 제일 힘들어요.",
@@ -213,11 +266,23 @@
           "additional_notes": "저녁에 붓는 느낌이 있어요."
         },
         "survey_responses": {
-          "Q1_location": ["both"],
-          "Q2_onset": ["gradual", "progressive_1month"],
+          "Q1_location": [
+            "both"
+          ],
+          "Q2_onset": [
+            "gradual",
+            "progressive_1month"
+          ],
           "Q3_nrs": 6,
-          "Q4_aggravating": ["walking_standing", "stairs_down", "squatting"],
-          "Q5_quality": ["heavy_dull", "swelling_heat"],
+          "Q4_aggravating": [
+            "walking_standing",
+            "stairs_down",
+            "squatting"
+          ],
+          "Q5_quality": [
+            "heavy_dull",
+            "swelling_heat"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -239,22 +304,26 @@
           "height_cm": 162,
           "weight_kg": 65
         },
-        "physical_score": {"total_score": 9},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 4,
-          "symptoms": [
-            "pain_medial",
-            "chronic",
-            "stairs_down",
-            "squatting",
-            "stiffness_morning",
-            "stiffness_improves"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 42
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 4,
+            "symptoms": [
+              "pain_medial",
+              "chronic",
+              "stairs_down",
+              "squatting",
+              "stiffness_morning",
+              "stiffness_improves"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "오른쪽 무릎 안쪽이 아파요.",
           "pain_description": "아침에 뻣뻣하고 움직이면 좀 나아져요. 계단 내려갈 때랑 쪼그려 앉을 때 아파요.",
@@ -263,11 +332,23 @@
           "additional_notes": null
         },
         "survey_responses": {
-          "Q1_location": ["right", "medial"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "right",
+            "medial"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 4,
-          "Q4_aggravating": ["stairs_down", "squatting", "morning"],
-          "Q5_quality": ["heavy_dull", "morning_stiffness"],
+          "Q4_aggravating": [
+            "stairs_down",
+            "squatting",
+            "morning"
+          ],
+          "Q5_quality": [
+            "heavy_dull",
+            "morning_stiffness"
+          ],
           "Q5_5_stiffness_duration": "under_30min",
           "Q6_red_flags": []
         }
@@ -290,21 +371,25 @@
           "height_cm": 160,
           "weight_kg": 58
         },
-        "physical_score": {"total_score": 11},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 3,
-          "symptoms": [
-            "pain_medial",
-            "chronic",
-            "stairs_down",
-            "stiffness_morning",
-            "stiffness_improves"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 58
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 3,
+            "symptoms": [
+              "pain_medial",
+              "chronic",
+              "stairs_down",
+              "stiffness_morning",
+              "stiffness_improves"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "왼쪽 무릎 안쪽이 살짝 불편해요.",
           "pain_description": "아침에 좀 뻣뻣하고 계단 내려갈 때 약간 시큰거려요. 심하지는 않아요.",
@@ -313,11 +398,22 @@
           "additional_notes": null
         },
         "survey_responses": {
-          "Q1_location": ["left", "medial"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "left",
+            "medial"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 3,
-          "Q4_aggravating": ["stairs_down", "morning"],
-          "Q5_quality": ["heavy_dull", "morning_stiffness"],
+          "Q4_aggravating": [
+            "stairs_down",
+            "morning"
+          ],
+          "Q5_quality": [
+            "heavy_dull",
+            "morning_stiffness"
+          ],
           "Q5_5_stiffness_duration": "under_30min",
           "Q6_red_flags": []
         }
@@ -340,21 +436,25 @@
           "height_cm": 178,
           "weight_kg": 72
         },
-        "physical_score": {"total_score": 13},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 5,
-          "symptoms": [
-            "pain_anterior",
-            "after_exercise",
-            "overuse_pattern",
-            "stairs_down",
-            "rest_improvement"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 75
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 5,
+            "symptoms": [
+              "pain_anterior",
+              "after_exercise",
+              "overuse_pattern",
+              "stairs_down",
+              "rest_improvement"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "달리기 후에 오른쪽 무릎 앞쪽이 아파요.",
           "pain_description": "5km 정도 뛰고 나면 슬개골 주변이 아프고, 쉬면 괜찮아져요. 계단 내려갈 때도 좀 아파요.",
@@ -363,11 +463,22 @@
           "additional_notes": "뛰는 도중에는 괜찮은데 뛰고 나서 아파요."
         },
         "survey_responses": {
-          "Q1_location": ["right", "anterior"],
-          "Q2_onset": ["after_exercise", "after_activity_increase"],
+          "Q1_location": [
+            "right",
+            "anterior"
+          ],
+          "Q2_onset": [
+            "after_exercise",
+            "after_activity_increase"
+          ],
           "Q3_nrs": 5,
-          "Q4_aggravating": ["after_exercise", "stairs_down"],
-          "Q5_quality": ["point_tenderness"],
+          "Q4_aggravating": [
+            "after_exercise",
+            "stairs_down"
+          ],
+          "Q5_quality": [
+            "point_tenderness"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -389,21 +500,25 @@
           "height_cm": 185,
           "weight_kg": 80
         },
-        "physical_score": {"total_score": 14},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 6,
-          "symptoms": [
-            "pain_anterior",
-            "after_exercise",
-            "overuse_pattern",
-            "activity_jumping",
-            "rest_improvement"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 83
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 6,
+            "symptoms": [
+              "pain_anterior",
+              "after_exercise",
+              "overuse_pattern",
+              "activity_jumping",
+              "rest_improvement"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "농구할 때 왼쪽 무릎 앞이 아파요.",
           "pain_description": "점프하고 착지할 때 슬개골 바로 아래가 찌릿해요. 쉬면 괜찮아지는데 경기하면 또 아파요.",
@@ -412,11 +527,20 @@
           "additional_notes": "점프할 때 제일 아파요."
         },
         "survey_responses": {
-          "Q1_location": ["left", "anterior"],
-          "Q2_onset": ["after_exercise"],
+          "Q1_location": [
+            "left",
+            "anterior"
+          ],
+          "Q2_onset": [
+            "after_exercise"
+          ],
           "Q3_nrs": 6,
-          "Q4_aggravating": ["after_exercise"],
-          "Q5_quality": ["point_tenderness"],
+          "Q4_aggravating": [
+            "after_exercise"
+          ],
+          "Q5_quality": [
+            "point_tenderness"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -438,20 +562,24 @@
           "height_cm": 165,
           "weight_kg": 55
         },
-        "physical_score": {"total_score": 14},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 4,
-          "symptoms": [
-            "pain_lateral",
-            "after_exercise",
-            "overuse_pattern",
-            "rest_improvement"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 83
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 4,
+            "symptoms": [
+              "pain_lateral",
+              "after_exercise",
+              "overuse_pattern",
+              "rest_improvement"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "오른쪽 무릎 바깥쪽이 달릴 때 아파요.",
           "pain_description": "3-4km 쯤 뛰면 무릎 옆 튀어나온 뼈 근처가 쓰리듯이 아파요. 쉬면 금방 나아요.",
@@ -460,11 +588,21 @@
           "additional_notes": "내리막에서 더 아픈 것 같아요."
         },
         "survey_responses": {
-          "Q1_location": ["right", "lateral"],
-          "Q2_onset": ["after_exercise", "after_activity_increase"],
+          "Q1_location": [
+            "right",
+            "lateral"
+          ],
+          "Q2_onset": [
+            "after_exercise",
+            "after_activity_increase"
+          ],
           "Q3_nrs": 4,
-          "Q4_aggravating": ["after_exercise"],
-          "Q5_quality": ["point_tenderness"],
+          "Q4_aggravating": [
+            "after_exercise"
+          ],
+          "Q5_quality": [
+            "point_tenderness"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -486,20 +624,24 @@
           "height_cm": 176,
           "weight_kg": 70
         },
-        "physical_score": {"total_score": 13},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "both",
-          "nrs": 3,
-          "symptoms": [
-            "pain_anterior",
-            "after_exercise",
-            "overuse_pattern",
-            "subacute"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 75
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "both",
+            "nrs": 3,
+            "symptoms": [
+              "pain_anterior",
+              "after_exercise",
+              "overuse_pattern",
+              "subacute"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "자전거 타고 나면 양쪽 무릎 앞이 뻐근해요.",
           "pain_description": "오래 타면 슬개골 주변이 뻐근하고 당기는 느낌이에요. 심하지는 않아요.",
@@ -508,10 +650,18 @@
           "additional_notes": "안장 높이가 안 맞는 건지 모르겠어요."
         },
         "survey_responses": {
-          "Q1_location": ["both", "anterior"],
-          "Q2_onset": ["after_exercise", "after_activity_increase"],
+          "Q1_location": [
+            "both",
+            "anterior"
+          ],
+          "Q2_onset": [
+            "after_exercise",
+            "after_activity_increase"
+          ],
           "Q3_nrs": 3,
-          "Q4_aggravating": ["after_exercise"],
+          "Q4_aggravating": [
+            "after_exercise"
+          ],
           "Q5_quality": [],
           "Q6_red_flags": []
         }
@@ -534,22 +684,26 @@
           "height_cm": 163,
           "weight_kg": 58
         },
-        "physical_score": {"total_score": 12},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 4,
-          "symptoms": [
-            "pain_anterior",
-            "after_exercise",
-            "overuse_pattern",
-            "subacute",
-            "rest_improvement",
-            "squatting"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 67
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 4,
+            "symptoms": [
+              "pain_anterior",
+              "after_exercise",
+              "overuse_pattern",
+              "subacute",
+              "rest_improvement",
+              "squatting"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "헬스장에서 운동하고 나면 오른쪽 무릎이 아파요.",
           "pain_description": "스쿼트나 레그프레스 하고 나면 무릎 앞쪽이 욱신거려요. 하루 쉬면 괜찮아져요.",
@@ -558,10 +712,19 @@
           "additional_notes": "PT 받을 때는 괜찮은데 혼자 하면 아파요."
         },
         "survey_responses": {
-          "Q1_location": ["right", "anterior"],
-          "Q2_onset": ["after_exercise", "after_activity_increase"],
+          "Q1_location": [
+            "right",
+            "anterior"
+          ],
+          "Q2_onset": [
+            "after_exercise",
+            "after_activity_increase"
+          ],
           "Q3_nrs": 4,
-          "Q4_aggravating": ["after_exercise", "squatting"],
+          "Q4_aggravating": [
+            "after_exercise",
+            "squatting"
+          ],
           "Q5_quality": [],
           "Q6_red_flags": []
         }
@@ -584,23 +747,27 @@
           "height_cm": 175,
           "weight_kg": 73
         },
-        "physical_score": {"total_score": 6},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 8,
-          "symptoms": [
-            "trauma_recent",
-            "sudden_onset",
-            "twisting",
-            "swelling",
-            "instability",
-            "giving_way",
-            "acute"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 17
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 8,
+            "symptoms": [
+              "trauma_recent",
+              "sudden_onset",
+              "twisting",
+              "swelling",
+              "instability",
+              "giving_way",
+              "acute"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "축구하다가 왼쪽 무릎이 꺾였어요. 너무 아파요.",
           "pain_description": "뚝 소리가 나면서 무릎이 빠지는 느낌이었어요. 지금은 많이 붓고 걷기가 힘들어요.",
@@ -609,11 +776,19 @@
           "additional_notes": "서 있을 때 무릎이 휘청거려요."
         },
         "survey_responses": {
-          "Q1_location": ["left"],
-          "Q2_onset": ["after_trauma"],
+          "Q1_location": [
+            "left"
+          ],
+          "Q2_onset": [
+            "after_trauma"
+          ],
           "Q3_nrs": 8,
-          "Q4_aggravating": ["twisting"],
-          "Q5_quality": ["swelling_heat"],
+          "Q4_aggravating": [
+            "twisting"
+          ],
+          "Q5_quality": [
+            "swelling_heat"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -635,21 +810,25 @@
           "height_cm": 165,
           "weight_kg": 58
         },
-        "physical_score": {"total_score": 8},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 6,
-          "symptoms": [
-            "trauma_recent",
-            "twisting",
-            "locking",
-            "catching",
-            "swelling"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 33
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 6,
+            "symptoms": [
+              "trauma_recent",
+              "twisting",
+              "locking",
+              "catching",
+              "swelling"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "스키 타다가 넘어지면서 오른쪽 무릎이 비틀렸어요.",
           "pain_description": "무릎이 걸리는 느낌이 있고 가끔 펴지지 않을 때가 있어요. 좀 부었어요.",
@@ -658,11 +837,20 @@
           "additional_notes": "쪼그려 앉으면 딱 걸리는 느낌이에요."
         },
         "survey_responses": {
-          "Q1_location": ["right"],
-          "Q2_onset": ["after_trauma"],
+          "Q1_location": [
+            "right"
+          ],
+          "Q2_onset": [
+            "after_trauma"
+          ],
           "Q3_nrs": 6,
-          "Q4_aggravating": ["twisting"],
-          "Q5_quality": ["locking_catching", "swelling_heat"],
+          "Q4_aggravating": [
+            "twisting"
+          ],
+          "Q5_quality": [
+            "locking_catching",
+            "swelling_heat"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -684,22 +872,26 @@
           "height_cm": 180,
           "weight_kg": 82
         },
-        "physical_score": {"total_score": 7},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 7,
-          "symptoms": [
-            "trauma_recent",
-            "pain_medial",
-            "sudden_onset",
-            "swelling",
-            "instability",
-            "acute"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 25
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 7,
+            "symptoms": [
+              "trauma_recent",
+              "pain_medial",
+              "sudden_onset",
+              "swelling",
+              "instability",
+              "acute"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "럭비하다가 왼쪽 무릎 안쪽을 맞았어요.",
           "pain_description": "옆에서 태클 당하면서 무릎 바깥쪽에서 안쪽으로 힘이 가해졌어요. 안쪽이 엄청 아파요.",
@@ -708,11 +900,18 @@
           "additional_notes": "좀 붓고 안쪽을 누르면 아파요."
         },
         "survey_responses": {
-          "Q1_location": ["left", "medial"],
-          "Q2_onset": ["after_trauma"],
+          "Q1_location": [
+            "left",
+            "medial"
+          ],
+          "Q2_onset": [
+            "after_trauma"
+          ],
           "Q3_nrs": 7,
           "Q4_aggravating": [],
-          "Q5_quality": ["swelling_heat"],
+          "Q5_quality": [
+            "swelling_heat"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -734,22 +933,26 @@
           "height_cm": 168,
           "weight_kg": 52
         },
-        "physical_score": {"total_score": 5},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 8,
-          "symptoms": [
-            "trauma_recent",
-            "sudden_onset",
-            "giving_way",
-            "swelling",
-            "acute_pain",
-            "weight_bearing_pain"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 8
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 8,
+            "symptoms": [
+              "trauma_recent",
+              "sudden_onset",
+              "giving_way",
+              "swelling",
+              "acute_pain",
+              "weight_bearing_pain"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "춤추다가 오른쪽 무릎이 빠지는 느낌이었어요.",
           "pain_description": "무릎뼈가 옆으로 빠졌다가 다시 들어간 것 같았어요. 엄청 아팠고 지금도 많이 아파요.",
@@ -758,11 +961,19 @@
           "additional_notes": "많이 붓고 걷기가 무서워요."
         },
         "survey_responses": {
-          "Q1_location": ["right"],
-          "Q2_onset": ["after_trauma"],
+          "Q1_location": [
+            "right"
+          ],
+          "Q2_onset": [
+            "after_trauma"
+          ],
           "Q3_nrs": 8,
-          "Q4_aggravating": ["walking_standing"],
-          "Q5_quality": ["swelling_heat"],
+          "Q4_aggravating": [
+            "walking_standing"
+          ],
+          "Q5_quality": [
+            "swelling_heat"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -784,21 +995,25 @@
           "height_cm": 173,
           "weight_kg": 75
         },
-        "physical_score": {"total_score": 9},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 5,
-          "symptoms": [
-            "trauma",
-            "locking",
-            "catching",
-            "subacute",
-            "pain_medial"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 42
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 5,
+            "symptoms": [
+              "trauma",
+              "locking",
+              "catching",
+              "subacute",
+              "pain_medial"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "2주 전에 등산하다가 왼쪽 무릎을 삐끗했는데 아직도 안 나아요.",
           "pain_description": "걸을 때 무릎이 걸리는 느낌이 있고, 안쪽이 아파요. 완전히 펴기가 불편해요.",
@@ -807,11 +1022,18 @@
           "additional_notes": "가끔 무릎에서 소리가 나요."
         },
         "survey_responses": {
-          "Q1_location": ["left", "medial"],
-          "Q2_onset": ["after_trauma"],
+          "Q1_location": [
+            "left",
+            "medial"
+          ],
+          "Q2_onset": [
+            "after_trauma"
+          ],
           "Q3_nrs": 5,
           "Q4_aggravating": [],
-          "Q5_quality": ["locking_catching"],
+          "Q5_quality": [
+            "locking_catching"
+          ],
           "Q6_red_flags": []
         }
       },
@@ -833,23 +1055,27 @@
           "height_cm": 160,
           "weight_kg": 55
         },
-        "physical_score": {"total_score": 9},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "both",
-          "nrs": 5,
-          "symptoms": [
-            "pain_bilateral",
-            "bilateral_symmetric",
-            "stiffness_morning",
-            "stiffness_30min_plus",
-            "swelling",
-            "multiple_joints",
-            "night_pain"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 42
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "both",
+            "nrs": 5,
+            "symptoms": [
+              "pain_bilateral",
+              "bilateral_symmetric",
+              "stiffness_morning",
+              "stiffness_30min_plus",
+              "swelling",
+              "multiple_joints",
+              "night_pain"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "양쪽 무릎이 똑같이 아프고 아침에 너무 뻣뻣해요.",
           "pain_description": "아침에 일어나면 1시간 넘게 뻣뻣하고, 밤에도 아파서 잠을 깨요. 좀 붓기도 해요.",
@@ -858,11 +1084,21 @@
           "additional_notes": "엄마가 류마티스 관절염이 있어요."
         },
         "survey_responses": {
-          "Q1_location": ["both"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "both"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 5,
-          "Q4_aggravating": ["morning", "at_rest"],
-          "Q5_quality": ["swelling_heat", "morning_stiffness"],
+          "Q4_aggravating": [
+            "morning",
+            "at_rest"
+          ],
+          "Q5_quality": [
+            "swelling_heat",
+            "morning_stiffness"
+          ],
           "Q5_5_stiffness_duration": "over_30min",
           "Q6_red_flags": []
         }
@@ -886,21 +1122,25 @@
           "height_cm": 177,
           "weight_kg": 72
         },
-        "physical_score": {"total_score": 8},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 6,
-          "symptoms": [
-            "swelling_heat",
-            "acute",
-            "night_pain",
-            "stiffness_morning",
-            "stiffness_30min_plus"
-          ],
-          "red_flags_checked": []
-        }],
+        "physical_score": {
+          "total_score": 33
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 6,
+            "symptoms": [
+              "swelling_heat",
+              "acute",
+              "night_pain",
+              "stiffness_morning",
+              "stiffness_30min_plus"
+            ],
+            "red_flags_checked": []
+          }
+        ],
         "natural_language": {
           "chief_complaint": "왼쪽 무릎이 갑자기 붓고 열이 나는 것 같아요.",
           "pain_description": "아침에 30분 이상 뻣뻣하고, 밤에 더 아파요. 좀 열감이 있어요.",
@@ -909,11 +1149,21 @@
           "additional_notes": "열은 없어요."
         },
         "survey_responses": {
-          "Q1_location": ["left"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "left"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 6,
-          "Q4_aggravating": ["morning", "at_rest"],
-          "Q5_quality": ["swelling_heat", "morning_stiffness"],
+          "Q4_aggravating": [
+            "morning",
+            "at_rest"
+          ],
+          "Q5_quality": [
+            "swelling_heat",
+            "morning_stiffness"
+          ],
           "Q5_5_stiffness_duration": "over_30min",
           "Q6_red_flags": []
         }
@@ -937,22 +1187,29 @@
           "height_cm": 170,
           "weight_kg": 78
         },
-        "physical_score": {"total_score": 4},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "right",
-          "nrs": 9,
-          "symptoms": [
-            "swelling_heat",
-            "fever",
-            "redness",
-            "acute",
-            "night_pain",
-            "systemic_symptoms"
-          ],
-          "red_flags_checked": ["fever_infection", "acute_swelling_heat"]
-        }],
+        "physical_score": {
+          "total_score": 0
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "right",
+            "nrs": 9,
+            "symptoms": [
+              "swelling_heat",
+              "fever",
+              "redness",
+              "acute",
+              "night_pain",
+              "systemic_symptoms"
+            ],
+            "red_flags_checked": [
+              "fever_infection",
+              "acute_swelling_heat"
+            ]
+          }
+        ],
         "natural_language": {
           "chief_complaint": "오른쪽 무릎이 빨갛게 붓고 열이 나요.",
           "pain_description": "무릎이 빨갛고 엄청 붓고 만지면 뜨거워요. 조금만 움직여도 너무 아파요.",
@@ -961,12 +1218,23 @@
           "additional_notes": "오한도 있어요."
         },
         "survey_responses": {
-          "Q1_location": ["right"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "right"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 9,
-          "Q4_aggravating": ["at_rest"],
-          "Q5_quality": ["swelling_heat"],
-          "Q6_red_flags": ["fever_infection", "acute_swelling_heat"]
+          "Q4_aggravating": [
+            "at_rest"
+          ],
+          "Q5_quality": [
+            "swelling_heat"
+          ],
+          "Q6_red_flags": [
+            "fever_infection",
+            "acute_swelling_heat"
+          ]
         }
       },
       "expected": {
@@ -987,19 +1255,25 @@
           "height_cm": 158,
           "weight_kg": 70
         },
-        "physical_score": {"total_score": 5},
-        "body_parts": [{
-          "code": "knee",
-          "primary": true,
-          "side": "left",
-          "nrs": 6,
-          "symptoms": [
-            "calf_pain",
-            "swelling",
-            "acute"
-          ],
-          "red_flags_checked": ["calf_swelling"]
-        }],
+        "physical_score": {
+          "total_score": 8
+        },
+        "body_parts": [
+          {
+            "code": "knee",
+            "primary": true,
+            "side": "left",
+            "nrs": 6,
+            "symptoms": [
+              "calf_pain",
+              "swelling",
+              "acute"
+            ],
+            "red_flags_checked": [
+              "calf_swelling"
+            ]
+          }
+        ],
         "natural_language": {
           "chief_complaint": "왼쪽 종아리랑 무릎이 부으면서 아파요.",
           "pain_description": "종아리가 뻐근하고 부어 있어요. 무릎 뒤쪽도 불편해요.",
@@ -1008,12 +1282,20 @@
           "additional_notes": "반대쪽 다리보다 확실히 두꺼워요."
         },
         "survey_responses": {
-          "Q1_location": ["left"],
-          "Q2_onset": ["gradual"],
+          "Q1_location": [
+            "left"
+          ],
+          "Q2_onset": [
+            "gradual"
+          ],
           "Q3_nrs": 6,
           "Q4_aggravating": [],
-          "Q5_quality": ["swelling_heat"],
-          "Q6_red_flags": ["calf_swelling"]
+          "Q5_quality": [
+            "swelling_heat"
+          ],
+          "Q6_red_flags": [
+            "calf_swelling"
+          ]
         }
       },
       "expected": {

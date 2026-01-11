@@ -8,6 +8,7 @@
 
 from contextlib import asynccontextmanager
 from datetime import datetime, date
+import json
 import os
 import re
 
@@ -17,6 +18,7 @@ load_dotenv(override=True)
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
 
 import sys
 from pathlib import Path
@@ -89,7 +91,7 @@ def custom_openapi():
                     "gender": "FEMALE",
                     "height": 170,
                     "weight": 65,
-                    "physicalScore": 12,
+                    "physicalScore": 70,
                 },
             },
             "after_feedback": {
@@ -127,7 +129,7 @@ def custom_openapi():
                     "gender": "FEMALE",
                     "height": 170,
                     "weight": 65,
-                    "physicalScore": 12,
+                    "physicalScore": 70,
                 },
             },
         }
@@ -156,6 +158,118 @@ def _error_payload(error: Exception, hint: str = None) -> dict:
         "type": type(error).__name__,
         "hint": hint,
     }
+
+
+def _clamp_physical_score(score: int) -> int:
+    return max(0, min(100, int(score)))
+
+
+def _calc_bmi(height_cm: int, weight_kg: int) -> float:
+    if height_cm <= 0:
+        return 0.0
+    height_m = height_cm / 100
+    return weight_kg / (height_m * height_m)
+
+
+def _call_openai_json(prompt: str) -> dict | None:
+    try:
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Return only valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.2,
+        )
+        content = response.choices[0].message.content
+        return json.loads(content) if content else None
+    except Exception:
+        return None
+
+
+def _gpt_physical_score_from_diagnose(request: AppDiagnoseRequest) -> int:
+    age = _age_from_birthdate(request.birth_date)
+    bmi = _calc_bmi(request.height, request.weight)
+    prompt = (
+        "Estimate a physical ability score between 0 and 100.\n"
+        "0 = very low, 100 = very high. Return JSON with key total_score.\n"
+        f"- age: {age}\n"
+        f"- gender: {request.gender}\n"
+        f"- height_cm: {request.height}\n"
+        f"- weight_kg: {request.weight}\n"
+        f"- bmi: {bmi:.1f}\n"
+        f"- pain_area: {request.pain_area}\n"
+        f"- pain_level: {request.pain_level}/10\n"
+        f"- pain_trigger: {request.pain_trigger}\n"
+        f"- pain_sensation: {request.pain_sensation}\n"
+        f"- pain_duration: {request.pain_duration}\n"
+        f"- pain_started: {request.pain_started_date}\n"
+    )
+    data = _call_openai_json(prompt) or {}
+    score = data.get("total_score") or data.get("totalScore")
+    try:
+        return _clamp_physical_score(int(float(score)))
+    except (TypeError, ValueError):
+        return 50
+
+
+def _summarize_previous_routine(previous_routine) -> str:
+    if not previous_routine or not previous_routine.exercises:
+        return "None"
+    parts = []
+    for ex in previous_routine.exercises[:6]:
+        parts.append(
+            f"{ex.exercise_id}/{ex.name_ko}/{ex.difficulty} "
+            f"{ex.recommended_sets}x{ex.recommended_reps}"
+        )
+    return "; ".join(parts)
+
+
+def _gpt_physical_score_for_exercise(
+    request: AppExerciseRequest,
+    demographics: Demographics,
+    bucket: str,
+    body_part: str,
+    base_score: int | None,
+) -> int:
+    bmi = demographics.bmi
+    routine_summary = _summarize_previous_routine(
+        request.post_survey.previous_routine if request.post_survey else None
+    )
+    prompt = (
+        "Estimate or update a physical ability score between 0 and 100.\n"
+        "If base_score is provided, adjust it using post-survey feedback and routine summary.\n"
+        "If base_score is not provided, estimate from profile and pre-survey responses.\n"
+        "Return JSON with key total_score.\n"
+        f"- base_score: {base_score if base_score is not None else 'None'}\n"
+        f"- age: {demographics.age}\n"
+        f"- gender: {demographics.sex}\n"
+        f"- height_cm: {demographics.height_cm}\n"
+        f"- weight_kg: {demographics.weight_kg}\n"
+        f"- bmi: {bmi:.1f}\n"
+        f"- bucket: {bucket}\n"
+        f"- body_part: {body_part}\n"
+        f"- pain_level: {request.pain_level}/10\n"
+        f"- squat_response: {request.squat_response}\n"
+        f"- pushup_response: {request.pushup_response}\n"
+        f"- stepup_response: {request.stepup_response}\n"
+        f"- plank_response: {request.plank_response}\n"
+        f"- post_survey_rpe: {request.post_survey.rpe_response if request.post_survey else None}\n"
+        f"- post_survey_muscle: {request.post_survey.muscle_stimulation_response if request.post_survey else None}\n"
+        f"- post_survey_sweat: {request.post_survey.sweat_response if request.post_survey else None}\n"
+        f"- previous_routine: {routine_summary}\n"
+    )
+    data = _call_openai_json(prompt) or {}
+    score = data.get("total_score") or data.get("totalScore")
+    try:
+        return _clamp_physical_score(int(float(score)))
+    except (TypeError, ValueError):
+        return _clamp_physical_score(base_score if base_score is not None else 50)
 
 
 def _age_from_birthdate(birth_date: date) -> int:
@@ -228,17 +342,6 @@ def _parse_reps_value(value) -> int:
     return parsed if parsed is not None else 0
 
 
-def _parse_duration_seconds(text: str) -> int | None:
-    if not text:
-        return None
-    value = _parse_int(text)
-    if value is None:
-        return None
-    if "분" in text:
-        return value * 60
-    return value
-
-
 def _map_difficulty_label(value: str | None) -> str | None:
     if not value:
         return value
@@ -259,19 +362,6 @@ def _map_difficulty_label(value: str | None) -> str | None:
         "심화 단계": "심화 단계",
     }
     return mapping.get(key, value)
-
-
-def _score_from_count(value: int | None, thresholds: tuple[int, int, int]) -> int:
-    if value is None:
-        return 2
-    if value <= thresholds[0]:
-        return 1
-    if value <= thresholds[1]:
-        return 2
-    if value <= thresholds[2]:
-        return 3
-    return 4
-
 
 def _build_unified_from_app(request: AppDiagnoseRequest) -> UnifiedRequest:
     extras = request.model_extra or {}
@@ -330,6 +420,8 @@ def _build_unified_from_app(request: AppDiagnoseRequest) -> UnifiedRequest:
         "natural_language": nl,
         "raw_survey_responses": raw_responses,
     }
+    physical_score = _gpt_physical_score_from_diagnose(request)
+    data["physical_score"] = PhysicalScore(total_score=physical_score)
     if request_id:
         data["request_id"] = request_id
     return UnifiedRequest(**data)
@@ -413,11 +505,6 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
     bucket = _map_bucket(str(bucket_raw))
     body_part = _map_pain_area(str(body_part_raw))
 
-    squat = _parse_int(request.squat_response)
-    pushup = _parse_int(request.pushup_response)
-    stepup = _parse_int(request.stepup_response)
-    plank_seconds = _parse_duration_seconds(request.plank_response)
-
     physical_score_override = request.physical_score
     if physical_score_override is None:
         extra_score = extras.get("physicalScore")
@@ -427,14 +514,20 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
         elif extra_score is not None:
             physical_score_override = extra_score
 
+    base_score = None
     if physical_score_override is not None:
-        total_score = int(physical_score_override)
+        base_score = _clamp_physical_score(int(physical_score_override))
+
+    if request.post_survey or base_score is None:
+        total_score = _gpt_physical_score_for_exercise(
+            request=request,
+            demographics=demographics,
+            bucket=bucket,
+            body_part=body_part,
+            base_score=base_score,
+        )
     else:
-        squat_score = _score_from_count(squat, (5, 10, 15))
-        pushup_score = _score_from_count(pushup, (3, 6, 10))
-        stepup_score = _score_from_count(stepup, (5, 10, 15))
-        plank_score = _score_from_count(plank_seconds, (10, 20, 40))
-        total_score = max(4, min(16, squat_score + pushup_score + stepup_score + plank_score))
+        total_score = base_score
 
     return ExerciseRecommendationInput(
         user_id=str(request.user_id),
@@ -492,7 +585,7 @@ async def recommend_exercises(
             "gender": "FEMALE",
             "height": 170,
             "weight": 65,
-            "physicalScore": 12,
+            "physicalScore": 70,
         },
     )
 ):
@@ -509,6 +602,7 @@ async def recommend_exercises(
             "routineDate": request.routine_date,
             "physicalScore": exercise_input.physical_score.total_score,
             "exercises": exercises_app,
+            "recommendationReason": exercise_output.llm_reasoning,
         }
     except ValueError as e:
         raise HTTPException(
@@ -551,7 +645,13 @@ async def diagnose_only(request: AppDiagnoseRequest):
         # 앱 입력을 그대로 사용해 추론 (자동 매핑/변환 없음)
         unified_request = _build_unified_from_app(request)
         result = orchestration_service.process_diagnosis_only(unified_request)
-        return result
+        payload = result.model_dump(by_alias=True)
+        physical_score = None
+        if result.survey_data and result.survey_data.physical_score:
+            physical_score = result.survey_data.physical_score.total_score
+        if physical_score is not None:
+            payload["physicalScore"] = physical_score
+        return payload
     except ValueError as e:
         raise HTTPException(
             status_code=400,
