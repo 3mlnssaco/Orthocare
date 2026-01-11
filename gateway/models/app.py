@@ -178,11 +178,22 @@ class AppExerciseItem(BaseModel):
     video_url: Optional[str] = Field(default=None, alias="videoUrl")
 
 
+class AppPhysicalScore(BaseModel):
+    """앱 신체 점수"""
+
+    total_score: int = Field(..., alias="totalScore", ge=4, le=16)
+
+
 class AppExerciseResponse(BaseModel):
     """앱 운동 추천 응답 스키마"""
 
     user_id: int = Field(..., alias="userId")
     routine_date: date = Field(..., alias="routineDate")
+    physical_score: Optional[AppPhysicalScore] = Field(
+        default=None,
+        alias="physicalScore",
+        description="신체 점수 (totalScore: 4-16)",
+    )
     exercises: List[AppExerciseItem]
 
     model_config = ConfigDict(
@@ -192,6 +203,9 @@ class AppExerciseResponse(BaseModel):
             "example": {
                 "userId": 1,
                 "routineDate": "2025-01-11",
+                "physicalScore": {
+                    "totalScore": 12
+                },
                 "exercises": [
                     {
                         "exerciseId": "EX001",

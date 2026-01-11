@@ -395,6 +395,9 @@ async def recommend_exercises(
         return {
             "userId": request.user_id,
             "routineDate": request.routine_date,
+            "physicalScore": {
+                "totalScore": exercise_input.physical_score.total_score
+            },
             "exercises": exercises_app,
         }
     except ValueError as e:

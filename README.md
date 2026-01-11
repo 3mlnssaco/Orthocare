@@ -986,6 +986,7 @@ Full 응답 예시:
 주요 필드:
 - `userId`
 - `routineDate`
+- `physicalScore` (totalScore: 4-16)
 - `exercises[]` (exerciseId/nameKo/difficulty/recommendedSets/recommendedReps/exerciseOrder/videoUrl)
 
 응답 예시:
@@ -993,6 +994,9 @@ Full 응답 예시:
 {
   "userId": 1,
   "routineDate": "2025-01-11",
+  "physicalScore": {
+    "totalScore": 12
+  },
   "exercises": [
     {
       "exerciseId": "EX001",
