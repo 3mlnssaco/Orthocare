@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Optional, Literal, List, Union, Dict, Any
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class AppDiagnoseRequest(BaseModel):
@@ -77,6 +77,21 @@ class AppDiagnoseResponse(BaseModel):
     )
     tags: List[str] = Field(..., description="특징 태그 (최소 3개 권장)")
 
+class AppPostSurvey(BaseModel):
+    """사후 설문 (운동 후 피드백)"""
+
+    rpe_response: Optional[str] = Field(
+        default=None, alias="rpeResponse", description="운동 끝난 후 몸은 어떠한가요?"
+    )
+    muscle_stimulation_response: Optional[str] = Field(
+        default=None,
+        alias="muscleStimulationResponse",
+        description="오늘 내 근육은 어떻게 느꼈나요?",
+    )
+    sweat_response: Optional[str] = Field(
+        default=None, alias="sweatResponse", description="운동 중 땀은 어느정도 났나요?"
+    )
+
 
 class AppExerciseRequest(BaseModel):
     """앱 운동 추천 요청 스키마 (요구 필드만 노출)"""
@@ -93,15 +108,18 @@ class AppExerciseRequest(BaseModel):
                 "pushupResponse": "5개",
                 "stepupResponse": "15개",
                 "plankResponse": "30초",
-                "rpeResponse": "적당함",
-                "muscleStimulationResponse": "중간",
-                "sweatResponse": "보통",
+                "postSurvey": {
+                    "rpeResponse": "적당함",
+                    "muscleStimulationResponse": "중간",
+                    "sweatResponse": "보통"
+                },
                 "bucket": "OA",
                 "bodyPart": "knee",
                 "age": 26,
                 "gender": "FEMALE",
                 "height": 170,
-                "weight": 65
+                "weight": 65,
+                "physicalScore": 12
             }
         },
     )
@@ -118,19 +136,17 @@ class AppExerciseRequest(BaseModel):
         description="플랭크 유지 시간 (예: 30초)",
     )
 
-    rpe_response: Optional[str] = Field(
-        ..., alias="rpeResponse", description="운동 끝난 후 몸은 어떠한가요? (null 허용)"
-    )
-    muscle_stimulation_response: Optional[str] = Field(
-        ...,
-        alias="muscleStimulationResponse",
-        description="오늘 내 근육은 어떻게 느꼈나요? (null 허용)",
-    )
-    sweat_response: Optional[str] = Field(
-        ..., alias="sweatResponse", description="운동 중 땀은 어느정도 났나요? (null 허용)"
-    )
-
     # 백엔드에서 추가로 전달 (필수)
+    physical_score: Optional[int] = Field(
+        default=None,
+        alias="physicalScore",
+        description="(백엔드) 신체 점수 (4-16)",
+    )
+    post_survey: Optional[AppPostSurvey] = Field(
+        default=None,
+        alias="postSurvey",
+        description="(사후) 운동 후 피드백",
+    )
     bucket: Optional[str] = Field(
         default=None,
         description="(백엔드) 진단 버킷 코드 (OA/OVR/TRM/INF/STF) 또는 diagnosisType",
@@ -165,6 +181,19 @@ class AppExerciseRequest(BaseModel):
         default=None, alias="birthDate", description="(백엔드) 생년월일 (YYYY-MM-DD)"
     )
 
+    @field_validator("physical_score", mode="before")
+    @classmethod
+    def normalize_physical_score(cls, value):
+        if value is None:
+            return value
+        if isinstance(value, dict):
+            total = value.get("totalScore") or value.get("total_score")
+            return int(total) if total is not None else None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
 
 class AppExerciseItem(BaseModel):
     """앱 운동 추천 응답 아이템"""
@@ -178,21 +207,15 @@ class AppExerciseItem(BaseModel):
     video_url: Optional[str] = Field(default=None, alias="videoUrl")
 
 
-class AppPhysicalScore(BaseModel):
-    """앱 신체 점수"""
-
-    total_score: int = Field(..., alias="totalScore", ge=4, le=16)
-
-
 class AppExerciseResponse(BaseModel):
     """앱 운동 추천 응답 스키마"""
 
     user_id: int = Field(..., alias="userId")
     routine_date: date = Field(..., alias="routineDate")
-    physical_score: Optional[AppPhysicalScore] = Field(
+    physical_score: Optional[int] = Field(
         default=None,
         alias="physicalScore",
-        description="신체 점수 (totalScore: 4-16)",
+        description="신체 점수 (4-16)",
     )
     exercises: List[AppExerciseItem]
 
@@ -203,9 +226,7 @@ class AppExerciseResponse(BaseModel):
             "example": {
                 "userId": 1,
                 "routineDate": "2025-01-11",
-                "physicalScore": {
-                    "totalScore": 12
-                },
+                "physicalScore": 12,
                 "exercises": [
                     {
                         "exerciseId": "EX001",

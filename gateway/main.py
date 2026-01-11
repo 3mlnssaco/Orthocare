@@ -83,18 +83,13 @@ def custom_openapi():
                     "pushupResponse": "5개",
                     "stepupResponse": "15개",
                     "plankResponse": "30초",
-                    "rpeResponse": None,
-                    "muscleStimulationResponse": None,
-                    "sweatResponse": None,
                     "bucket": "OA",
                     "bodyPart": "knee",
                     "age": 26,
                     "gender": "FEMALE",
                     "height": 170,
                     "weight": 65,
-                    "physicalScore": {
-                        "totalScore": 12
-                    },
+                    "physicalScore": 12,
                 },
             },
             "after_feedback": {
@@ -107,18 +102,18 @@ def custom_openapi():
                     "pushupResponse": "5개",
                     "stepupResponse": "15개",
                     "plankResponse": "30초",
-                    "rpeResponse": "적당함",
-                    "muscleStimulationResponse": "중간",
-                    "sweatResponse": "보통",
+                    "postSurvey": {
+                        "rpeResponse": "적당함",
+                        "muscleStimulationResponse": "중간",
+                        "sweatResponse": "보통",
+                    },
                     "bucket": "OA",
                     "bodyPart": "knee",
                     "age": 26,
                     "gender": "FEMALE",
                     "height": 170,
                     "weight": 65,
-                    "physicalScore": {
-                        "totalScore": 12
-                    },
+                    "physicalScore": 12,
                 },
             },
         }
@@ -388,18 +383,16 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
     plank_seconds = _parse_duration_seconds(request.plank_response)
 
     physical_score_override = request.physical_score
-    if not physical_score_override:
+    if physical_score_override is None:
         extra_score = extras.get("physicalScore")
         if isinstance(extra_score, dict):
             total = extra_score.get("totalScore") or extra_score.get("total_score")
-            if total is not None:
-                physical_score_override = {"totalScore": total}
+            physical_score_override = total
+        elif extra_score is not None:
+            physical_score_override = extra_score
 
-    if physical_score_override:
-        if isinstance(physical_score_override, dict):
-            total_score = int(physical_score_override.get("totalScore"))
-        else:
-            total_score = int(physical_score_override.total_score)
+    if physical_score_override is not None:
+        total_score = int(physical_score_override)
     else:
         squat_score = _score_from_count(squat, (5, 10, 15))
         pushup_score = _score_from_count(pushup, (3, 6, 10))
@@ -457,18 +450,18 @@ async def recommend_exercises(
             "pushupResponse": "5개",
             "stepupResponse": "15개",
             "plankResponse": "30초",
-            "rpeResponse": "적당함",
-            "muscleStimulationResponse": "중간",
-            "sweatResponse": "보통",
+            "postSurvey": {
+                "rpeResponse": "적당함",
+                "muscleStimulationResponse": "중간",
+                "sweatResponse": "보통",
+            },
             "bucket": "OA",
             "bodyPart": "knee",
             "age": 26,
             "gender": "FEMALE",
             "height": 170,
             "weight": 65,
-            "physicalScore": {
-                "totalScore": 12
-            },
+            "physicalScore": 12,
         },
     )
 ):
@@ -483,9 +476,7 @@ async def recommend_exercises(
         return {
             "userId": request.user_id,
             "routineDate": request.routine_date,
-            "physicalScore": {
-                "totalScore": exercise_input.physical_score.total_score
-            },
+            "physicalScore": exercise_input.physical_score.total_score,
             "exercises": exercises_app,
         }
     except ValueError as e:

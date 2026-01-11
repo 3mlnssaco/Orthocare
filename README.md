@@ -948,11 +948,6 @@ Full 응답 예시:
 - `pushupResponse`
 - `stepupResponse`
 - `plankResponse`
-- `rpeResponse`
-- `muscleStimulationResponse`
-- `sweatResponse`
-
-참고: 최초 운동 추천 시 `rpeResponse/muscleStimulationResponse/sweatResponse`는 null로 전달.
 
 백엔드 추가 필수:
 - `bucket` (OA/OVR/TRM/INF/STF)
@@ -960,8 +955,9 @@ Full 응답 예시:
 - 인구통계: `age` + `gender` + `height` + `weight` (birthDate 대신 age 사용 가능)
 
 백엔드 추가 선택:
-- `physicalScore` (totalScore: 4-16)  
+- `physicalScore` (4-16)  
   없으면 서버가 4문항 응답으로 내부 계산
+- `postSurvey` (사후 설문: rpeResponse/muscleStimulationResponse/sweatResponse)
 
 요청 예시 (초기, 사후설문 없음):
 ```json
@@ -973,18 +969,13 @@ Full 응답 예시:
   "pushupResponse": "5개",
   "stepupResponse": "15개",
   "plankResponse": "30초",
-  "rpeResponse": null,
-  "muscleStimulationResponse": null,
-  "sweatResponse": null,
   "bucket": "OA",
   "bodyPart": "knee",
   "age": 26,
   "gender": "FEMALE",
   "height": 170,
   "weight": 65,
-  "physicalScore": {
-    "totalScore": 12
-  }
+  "physicalScore": 12
 }
 ```
 
@@ -998,18 +989,18 @@ Full 응답 예시:
   "pushupResponse": "5개",
   "stepupResponse": "15개",
   "plankResponse": "30초",
-  "rpeResponse": "적당함",
-  "muscleStimulationResponse": "중간",
-  "sweatResponse": "보통",
+  "postSurvey": {
+    "rpeResponse": "적당함",
+    "muscleStimulationResponse": "중간",
+    "sweatResponse": "보통"
+  },
   "bucket": "OA",
   "bodyPart": "knee",
   "age": 26,
   "gender": "FEMALE",
   "height": 170,
   "weight": 65,
-  "physicalScore": {
-    "totalScore": 12
-  }
+  "physicalScore": 12
 }
 ```
 
@@ -1018,7 +1009,7 @@ Full 응답 예시:
 주요 필드:
 - `userId`
 - `routineDate`
-- `physicalScore` (totalScore: 4-16)
+- `physicalScore` (4-16)
 - `exercises[]` (exerciseId/nameKo/difficulty/recommendedSets/recommendedReps/exerciseOrder/videoUrl)
 
 응답 예시:
@@ -1026,9 +1017,7 @@ Full 응답 예시:
 {
   "userId": 1,
   "routineDate": "2025-01-11",
-  "physicalScore": {
-    "totalScore": 12
-  },
+  "physicalScore": 12,
   "exercises": [
     {
       "exerciseId": "EX001",
