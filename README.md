@@ -841,7 +841,6 @@ POST /api/v1/recommend-exercises
 
 주요 필드:
 - `diagnosis` (diagnosisPercentage/diagnosisType/diagnosisDescription/tags 포함)
-- `status`, `processing_time_ms`
 
 최소 응답 예시:
 ```json
@@ -849,13 +848,11 @@ POST /api/v1/recommend-exercises
   "request_id": "uuid",
   "user_id": "user_001",
   "diagnosis": {
-    "diagnosis_percentage": 75,
-    "diagnosis_type": "퇴행성형",
-    "diagnosis_description": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
+    "diagnosisPercentage": 75,
+    "diagnosisType": "퇴행성형",
+    "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
     "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"]
-  },
-  "status": "success",
-  "processing_time_ms": 8000
+  }
 }
 ```
 

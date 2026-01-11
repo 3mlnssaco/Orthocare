@@ -8,7 +8,7 @@
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import uuid
 
 import sys
@@ -218,6 +218,8 @@ class UnifiedRequest(BaseModel):
 class DiagnosisResult(BaseModel):
     """버킷 추론 결과 (응답용)"""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     body_part: str
     final_bucket: str
     confidence: float
@@ -231,13 +233,15 @@ class DiagnosisResult(BaseModel):
 
     # 앱 호환 필드 (선택)
     diagnosis_percentage: Optional[int] = Field(
-        default=None, description="진단 확률 (0-100)"
+        default=None, alias="diagnosisPercentage", description="진단 확률 (0-100)"
     )
     diagnosis_type: Optional[str] = Field(
-        default=None, description="진단 유형 (예: 퇴행성형/과사용형/외상형/염증형)"
+        default=None,
+        alias="diagnosisType",
+        description="진단 유형 (예: 퇴행성형/과사용형/외상형/염증형)",
     )
     diagnosis_description: Optional[str] = Field(
-        default=None, description="진단 설명 (사용자용)"
+        default=None, alias="diagnosisDescription", description="진단 설명 (사용자용)"
     )
     tags: Optional[List[str]] = Field(
         default=None, description="특징 태그 (최소 3개 권장)"

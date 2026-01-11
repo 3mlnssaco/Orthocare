@@ -25,6 +25,7 @@ from gateway.models import (
     UnifiedRequest,
     UnifiedResponse,
     AppDiagnoseRequest,
+    AppDiagnoseResponse,
     AppExerciseRequest,
     AppExerciseResponse,
 )
@@ -135,6 +136,15 @@ def _parse_int(text: str) -> int | None:
         return None
     match = re.search(r"\d+", text)
     return int(match.group()) if match else None
+
+
+def _parse_reps_value(value) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, int):
+        return value
+    parsed = _parse_int(str(value))
+    return parsed if parsed is not None else 0
 
 
 def _parse_duration_seconds(text: str) -> int | None:
@@ -303,7 +313,7 @@ def _build_exercises_app(exercises: list) -> list[dict]:
                 "nameKo": ex_dict.get("name_kr"),
                 "difficulty": ex_dict.get("difficulty"),
                 "recommendedSets": ex_dict.get("sets"),
-                "recommendedReps": ex_dict.get("reps"),
+                "recommendedReps": _parse_reps_value(ex_dict.get("reps")),
                 "exerciseOrder": idx,
                 "videoUrl": ex_dict.get("youtube"),
             }
@@ -354,7 +364,20 @@ async def recommend_exercises(request: AppExerciseRequest):
         )
 
 
-@app.post("/api/v1/diagnose", response_model=UnifiedResponse)
+@app.post(
+    "/api/v1/diagnose",
+    response_model=None,
+    responses={
+        200: {
+            "description": "Successful Response",
+            "content": {
+                "application/json": {
+                    "schema": AppDiagnoseResponse.model_json_schema(),
+                }
+            },
+        }
+    },
+)
 async def diagnose_only(request: AppDiagnoseRequest):
     """버킷 추론만 실행 (운동 추천 제외)
 
