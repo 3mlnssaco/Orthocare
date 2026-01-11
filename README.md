@@ -840,8 +840,7 @@ POST /api/v1/recommend-exercises
 #### Response - 버킷 추론 (앱 응답)
 
 앱에서 필요한 필드만 반환:
-- `survey_data` (demographics/body_parts/natural_language/raw_responses/physical_score)
-- `diagnosis` (body_part/final_bucket/confidence + 앱 표시용 필드)
+- `diagnosis` (body_part/final_bucket/confidence/physical_score + 앱 표시용 필드)
 
 버킷 구성 (부위별):
 - 무릎: `OA`, `OVR`, `TRM`, `INF`
@@ -850,52 +849,14 @@ POST /api/v1/recommend-exercises
 응답 예시:
 ```json
 {
-  "survey_data": {
-    "demographics": {
-      "age": 26,
-      "sex": "female",
-      "height_cm": 170,
-      "weight_kg": 65
-    },
-    "body_parts": [
-      {
-        "code": "knee",
-        "primary": true,
-        "side": "both",
-        "symptoms": [
-          "계단 내려갈 때",
-          "뻐근함",
-          "30분 이상",
-          "무리하게 운동한 이후부터 아파요"
-        ],
-        "nrs": 6,
-        "red_flags_checked": []
-      }
-    ],
-    "natural_language": {
-      "chief_complaint": "무릎 통증",
-      "pain_description": "계단 내려갈 때; 뻐근함; 30분 이상",
-      "history": "무리하게 운동한 이후부터 아파요"
-    },
-    "physical_score": 68,
-    "raw_responses": {
-      "painArea": "무릎",
-      "affectedSide": "양쪽",
-      "painStartedDate": "무리하게 운동한 이후부터 아파요",
-      "painLevel": 6,
-      "painTrigger": "계단 내려갈 때",
-      "painSensation": "뻐근함",
-      "painDuration": "30분 이상",
-      "redFlags": ""
-    }
-  },
   "diagnosis": {
     "body_part": "knee",
     "final_bucket": "OVR",
     "confidence": 0.85,
+    "physical_score": 68,
     "diagnosisPercentage": 85,
     "diagnosisType": "OVR",
-    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴"
+    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴입니다. 휴식 시 호전되는 경향이 동반됩니다."
   }
 }
 ```
@@ -1008,6 +969,7 @@ POST /api/v1/recommend-exercises
 - `routineDate`
 - `physicalScore` (0-100)
 - `exercises[]` (exerciseId/nameKo/difficulty/recommendedSets/recommendedReps/exerciseOrder/videoUrl)
+- `physicalScoreReasoning` (신체 점수 변화 이유 요약)
 - `recommendationReason` (운동 추천 추론 이유 요약)
 
 응답 예시:
@@ -1036,6 +998,7 @@ POST /api/v1/recommend-exercises
       "videoUrl": "https://…"
     }
   ],
+  "physicalScoreReasoning": "사전평가 응답과 통증 수준을 종합해 70점으로 추정했습니다.",
   "recommendationReason": "통증 수준과 신체 점수를 고려해 무릎 관절에 부담이 적은 강화 운동 위주로 구성했습니다."
 }
 ```
@@ -1301,27 +1264,7 @@ Request (백엔드 -> AI)
 POST /api/v1/recommend-exercises
 ```
 
-OrthoCare 내부 `ExerciseRecommendationInput` 스키마를 그대로 사용합니다.  
-이미 버킷 추론 결과와 사전 평가가 있을 때 호출하세요.
-
-예시 요청:
-```json
-{
-  "user_id": "user_ex_001",
-  "body_part": "knee",
-  "bucket": "OA",
-  "physical_score": { "total_score": 70 },
-  "demographics": { "age": 55, "sex": "male", "height_cm": 175, "weight_kg": 80 },
-  "nrs": 5
-}
-```
-
-선택 필드:
-- `previous_assessments` (사후 설문 3문항: difficulty_felt, muscle_stimulus, sweat_level)
-- `last_assessment_date`, `skipped_exercises`, `favorite_exercises`
-- `joint_status` (joint_condition/rom_status/rehabilitation_phase/weight_bearing_tolerance)
-
-응답은 `exercise_recommendation.models.output.ExerciseRecommendationOutput` 스키마로 반환됩니다.
+요청/응답은 7.1 Gateway API 섹션의 `/api/v1/recommend-exercises`와 동일합니다.
 
 ---
 
@@ -1486,29 +1429,37 @@ python test_railway_api.py https://<your-app>.up.railway.app
 2) 버킷 추론 (/api/v1/diagnose)
 ```json
 {
-  "request_id": "34b3d1fe-8be9-4a94-b278-2f8fa0a0b562",
-  "user_id": "test_user_002",
   "diagnosis": {
     "body_part": "knee",
     "final_bucket": "OA",
-    "confidence": 0.75
-  },
-  "exercise_plan": null,
-  "status": "success",
-  "processing_time_ms": 5580
+    "confidence": 0.75,
+    "physical_score": 70,
+    "diagnosisPercentage": 75,
+    "diagnosisType": "OA",
+    "diagnosisDescription": "퇴행성 패턴으로 무릎 통증이 점진적으로 악화되는 경향입니다. 계단/보행 시 통증이 동반될 수 있습니다."
+  }
 }
 ```
 
 3) 운동 추천 (/api/v1/recommend-exercises)
 ```json
 {
-  "user_id": "user_123",
-  "body_part": "knee",
-  "bucket": "OA",
-  "routine_order": ["E09", "E13", "E18", "E15", "E10", "E20"],
-  "total_duration_min": 16,
-  "difficulty_level": "medium",
-  "recommended_at": "2026-01-10T06:39:16.958967"
+  "userId": 1,
+  "routineDate": "2026-01-10",
+  "physicalScore": 70,
+  "exercises": [
+    {
+      "exerciseId": "E09",
+      "nameKo": "브리지",
+      "difficulty": "기초 단계",
+      "recommendedSets": 2,
+      "recommendedReps": 10,
+      "exerciseOrder": 1,
+      "videoUrl": "https://..."
+    }
+  ],
+  "physicalScoreReasoning": "사전평가 응답과 통증 수준을 종합해 점수를 산정했습니다.",
+  "recommendationReason": "통증 수준과 신체 점수를 고려해 무릎 관절 부담이 적은 운동 위주로 구성했습니다."
 }
 ```
 

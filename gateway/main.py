@@ -254,7 +254,7 @@ def _gpt_physical_score_for_exercise(
     bucket: str,
     body_part: str,
     base_score: int | None,
-) -> int:
+) -> tuple[int, str | None]:
     bmi = demographics.bmi
     routine_summary = _summarize_previous_routine(
         request.post_survey.previous_routine if request.post_survey else None
@@ -263,7 +263,7 @@ def _gpt_physical_score_for_exercise(
         "Estimate or update a physical ability score between 0 and 100.\n"
         "If base_score is provided, adjust it using post-survey feedback and routine summary.\n"
         "If base_score is not provided, estimate from profile and pre-survey responses.\n"
-        "Return JSON with key total_score.\n"
+        "Return JSON with keys total_score and reasoning (1-2 sentences).\n"
         f"- base_score: {base_score if base_score is not None else 'None'}\n"
         f"- age: {demographics.age}\n"
         f"- gender: {demographics.sex}\n"
@@ -284,10 +284,11 @@ def _gpt_physical_score_for_exercise(
     )
     data = _call_openai_json(prompt) or {}
     score = data.get("total_score") or data.get("totalScore")
+    reasoning = data.get("reasoning")
     try:
-        return _clamp_physical_score(int(float(score)))
+        return _clamp_physical_score(int(float(score))), reasoning
     except (TypeError, ValueError):
-        return _clamp_physical_score(base_score if base_score is not None else 50)
+        return _clamp_physical_score(base_score if base_score is not None else 50), None
 
 
 def _age_from_birthdate(birth_date: date) -> int:
@@ -382,10 +383,6 @@ def _map_difficulty_label(value: str | None) -> str | None:
     return mapping.get(key, value)
 
 def _build_unified_from_app(request: AppDiagnoseRequest) -> UnifiedRequest:
-    extras = request.model_extra or {}
-    user_id = extras.get("user_id") or extras.get("userId") or "unknown"
-    request_id = extras.get("request_id") or extras.get("requestId")
-
     age = _age_from_birthdate(request.birth_date)
     sex = _map_gender(request.gender)
     body_code = _map_pain_area(request.pain_area)
@@ -419,7 +416,7 @@ def _build_unified_from_app(request: AppDiagnoseRequest) -> UnifiedRequest:
     }
 
     data = {
-        "user_id": str(user_id),
+        "user_id": "unknown",
         "demographics": Demographics(
             age=age,
             sex=sex,
@@ -440,8 +437,6 @@ def _build_unified_from_app(request: AppDiagnoseRequest) -> UnifiedRequest:
     }
     physical_score = _gpt_physical_score_from_diagnose(request)
     data["physical_score"] = PhysicalScore(total_score=physical_score)
-    if request_id:
-        data["request_id"] = request_id
     return UnifiedRequest(**data)
 
 
@@ -464,24 +459,12 @@ def _map_bucket(value: str) -> str:
     return mapping[key]
 
 
-def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecommendationInput:
-    extras = request.model_extra or {}
-
-    bucket_raw = (
-        request.bucket
-        or request.diagnosis_type
-        or extras.get("bucket")
-        or extras.get("diagnosis_type")
-        or extras.get("diagnosisType")
-    )
-    body_part_raw = (
-        request.body_part
-        or request.pain_area
-        or extras.get("body_part")
-        or extras.get("bodyPart")
-        or extras.get("painArea")
-    )
-    demo_raw = request.demographics or extras.get("demographics")
+def _build_exercise_input_from_app(
+    request: AppExerciseRequest,
+) -> tuple[ExerciseRecommendationInput, str | None]:
+    bucket_raw = request.bucket or request.diagnosis_type
+    body_part_raw = request.body_part or request.pain_area
+    demo_raw = request.demographics
 
     if not bucket_raw or not body_part_raw:
         raise ValueError("bucket/body_part 누락: 백엔드에서 추가 전달 필요")
@@ -504,11 +487,11 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
             weight_kg=demo_weight,
         )
     else:
-        age = request.age or extras.get("age")
-        gender = request.gender or extras.get("gender")
-        height = request.height or extras.get("height")
-        weight = request.weight or extras.get("weight")
-        birth_date = request.birth_date or extras.get("birthDate")
+        age = request.age
+        gender = request.gender
+        height = request.height
+        weight = request.weight
+        birth_date = request.birth_date
         if age is None and birth_date:
             age = _age_from_birthdate(date.fromisoformat(str(birth_date)))
         if age is None or gender is None or height is None or weight is None:
@@ -524,20 +507,13 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
     body_part = _map_pain_area(str(body_part_raw))
 
     physical_score_override = request.physical_score
-    if physical_score_override is None:
-        extra_score = extras.get("physicalScore")
-        if isinstance(extra_score, dict):
-            total = extra_score.get("totalScore") or extra_score.get("total_score")
-            physical_score_override = total
-        elif extra_score is not None:
-            physical_score_override = extra_score
-
     base_score = None
     if physical_score_override is not None:
         base_score = _clamp_physical_score(int(physical_score_override))
 
+    physical_score_reasoning = None
     if request.post_survey or base_score is None:
-        total_score = _gpt_physical_score_for_exercise(
+        total_score, physical_score_reasoning = _gpt_physical_score_for_exercise(
             request=request,
             demographics=demographics,
             bucket=bucket,
@@ -547,13 +523,16 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
     else:
         total_score = base_score
 
-    return ExerciseRecommendationInput(
-        user_id=str(request.user_id),
-        body_part=body_part,
-        bucket=bucket,
-        physical_score=PhysicalScore(total_score=total_score),
-        demographics=demographics,
-        nrs=request.pain_level,
+    return (
+        ExerciseRecommendationInput(
+            user_id=str(request.user_id),
+            body_part=body_part,
+            bucket=bucket,
+            physical_score=PhysicalScore(total_score=total_score),
+            demographics=demographics,
+            nrs=request.pain_level,
+        ),
+        physical_score_reasoning,
     )
 
 
@@ -612,16 +591,19 @@ async def recommend_exercises(
     앱/백엔드에서 이미 버킷과 사전평가가 있을 때 사용
     """
     try:
-        exercise_input = _build_exercise_input_from_app(request)
+        exercise_input, score_reasoning = _build_exercise_input_from_app(request)
         exercise_output = orchestration_service.exercise_pipeline.run(exercise_input)
         exercises_app = _build_exercises_app(exercise_output.exercises)
-        return {
+        response_payload = {
             "userId": request.user_id,
             "routineDate": request.routine_date,
             "physicalScore": exercise_input.physical_score.total_score,
             "exercises": exercises_app,
             "recommendationReason": exercise_output.llm_reasoning,
         }
+        if score_reasoning:
+            response_payload["physicalScoreReasoning"] = score_reasoning
+        return response_payload
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -663,20 +645,24 @@ async def diagnose_only(request: AppDiagnoseRequest):
         # 앱 입력을 그대로 사용해 추론 (자동 매핑/변환 없음)
         unified_request = _build_unified_from_app(request)
         result = orchestration_service.process_diagnosis_only(unified_request)
-        survey_payload = result.survey_data.model_dump(by_alias=True) if result.survey_data else {}
-        if result.survey_data and result.survey_data.physical_score:
-            survey_payload["physical_score"] = result.survey_data.physical_score.total_score
         diagnosis = result.diagnosis
+        physical_score_value = None
+        if unified_request.physical_score:
+            physical_score_value = unified_request.physical_score.total_score
+        elif result.survey_data and result.survey_data.physical_score:
+            physical_score_value = result.survey_data.physical_score.total_score
+        if physical_score_value is None:
+            physical_score_value = 50
         diagnosis_payload = {
             "body_part": diagnosis.body_part,
             "final_bucket": diagnosis.final_bucket,
             "confidence": diagnosis.confidence,
+            "physical_score": physical_score_value,
             "diagnosisPercentage": diagnosis.diagnosis_percentage,
             "diagnosisType": diagnosis.diagnosis_type,
             "diagnosisDescription": diagnosis.diagnosis_description,
         }
         return {
-            "survey_data": survey_payload,
             "diagnosis": diagnosis_payload,
         }
     except ValueError as e:

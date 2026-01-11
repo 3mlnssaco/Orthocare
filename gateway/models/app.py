@@ -1,12 +1,10 @@
 """App-facing request models for Gateway endpoints."""
 
 from datetime import date
-from typing import Optional, Literal, List, Union, Dict, Any
+from typing import Optional, Literal, List, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from shared.models import Demographics, BodyPartInput
-from bucket_inference.models.input import NaturalLanguageInput
 
 
 class AppDiagnoseRequest(BaseModel):
@@ -14,9 +12,8 @@ class AppDiagnoseRequest(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        extra="allow",
+        extra="forbid",
         json_schema_extra={
-            "additionalProperties": False,
             "example": {
                 "birthDate": "2000-01-01",
                 "height": 170,
@@ -56,19 +53,6 @@ class AppDiagnoseRequest(BaseModel):
     red_flags: str = Field(..., alias="redFlags", description="위험 신호")
 
 
-class AppSurveyDataResponse(BaseModel):
-    """앱 설문 데이터 응답 (요약)"""
-
-    demographics: Demographics
-    body_parts: List[BodyPartInput]
-    natural_language: Optional[NaturalLanguageInput] = None
-    physical_score: Optional[int] = Field(
-        default=None,
-        description="신체 점수 (0-100)",
-    )
-    raw_responses: Optional[Dict[str, Any]] = Field(default=None)
-
-
 class AppDiagnosisSummary(BaseModel):
     """앱 버킷 추론 결과 요약"""
 
@@ -77,6 +61,7 @@ class AppDiagnosisSummary(BaseModel):
     body_part: str
     final_bucket: str
     confidence: float
+    physical_score: int = Field(..., alias="physical_score", description="신체 점수 (0-100)")
     diagnosis_percentage: int = Field(..., alias="diagnosisPercentage", description="진단 확률 (0-100)")
     diagnosis_type: str = Field(
         ..., alias="diagnosisType", description="진단 유형 (버킷 코드: OA/OVR/TRM/INF/STF)"
@@ -93,58 +78,19 @@ class AppDiagnoseResponse(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "survey_data": {
-                    "demographics": {
-                        "age": 26,
-                        "sex": "female",
-                        "height_cm": 170,
-                        "weight_kg": 65
-                    },
-                    "body_parts": [
-                        {
-                            "code": "knee",
-                            "primary": True,
-                            "side": "both",
-                            "symptoms": [
-                                "계단 내려갈 때",
-                                "뻐근함",
-                                "30분 이상",
-                                "무리하게 운동한 이후부터 아파요"
-                            ],
-                            "nrs": 6,
-                            "red_flags_checked": []
-                        }
-                    ],
-                    "natural_language": {
-                        "chief_complaint": "무릎 통증",
-                        "pain_description": "계단 내려갈 때; 뻐근함; 30분 이상",
-                        "history": "무리하게 운동한 이후부터 아파요"
-                    },
-                    "physical_score": 68,
-                    "raw_responses": {
-                        "painArea": "무릎",
-                        "affectedSide": "양쪽",
-                        "painStartedDate": "무리하게 운동한 이후부터 아파요",
-                        "painLevel": 6,
-                        "painTrigger": "계단 내려갈 때",
-                        "painSensation": "뻐근함",
-                        "painDuration": "30분 이상",
-                        "redFlags": ""
-                    }
-                },
                 "diagnosis": {
                     "body_part": "knee",
                     "final_bucket": "OVR",
                     "confidence": 0.85,
+                    "physical_score": 68,
                     "diagnosisPercentage": 85,
                     "diagnosisType": "OVR",
-                    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴"
+                    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴입니다. 휴식 시 호전되는 경향이 동반됩니다."
                 }
             }
         },
     )
 
-    survey_data: AppSurveyDataResponse
     diagnosis: AppDiagnosisSummary
 
 
@@ -192,7 +138,7 @@ class AppExerciseRequest(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        extra="allow",
+        extra="forbid",
         json_schema_extra={
             "example": {
                 "userId": 1,
@@ -294,6 +240,11 @@ class AppExerciseResponse(BaseModel):
         alias="physicalScore",
         description="신체 점수 (0-100)",
     )
+    physical_score_reasoning: Optional[str] = Field(
+        default=None,
+        alias="physicalScoreReasoning",
+        description="신체 점수 변화 이유 (요약)",
+    )
     exercises: List[AppExerciseItem]
     recommendation_reason: Optional[str] = Field(
         default=None,
@@ -329,6 +280,7 @@ class AppExerciseResponse(BaseModel):
                         "videoUrl": "https://…"
                     }
                 ],
+                "physicalScoreReasoning": "사후 설문에서 난이도 체감이 적정 수준이라 점수를 소폭 상향했습니다.",
                 "recommendationReason": "통증 수준과 신체 점수를 고려해 무릎 관절에 부담이 적은 강화 운동 위주로 구성했습니다."
             }
         },
