@@ -1124,6 +1124,80 @@ POST /api/v1/diagnose
 POST /api/v1/recommend-exercises
 ```
 
+#### 앱 요구사항에 맞춘 최소 필드
+
+- 버킷 추론 요청: 아래 필드만 보내면 됨 (나머지 옵션 무시)
+```json
+{
+  "user_id": "user_001",
+  "demographics": {
+    "age": 55,              // birthDate → age 변환값
+    "sex": "female",        // male/female/prefer_not_to_say
+    "height_cm": 160,
+    "weight_kg": 65
+  },
+  "body_parts": [
+    {
+      "code": "knee",           // painArea
+      "side": "both",           // affectedSide
+      "symptoms": ["pain_medial", "stiffness_morning"], // painTrigger/painSensation/painDuration을 증상 코드로 변환해 전달
+      "nrs": 6                  // painLevel
+    }
+  ]
+}
+```
+
+- 버킷 추론 응답: 앱에서 쓰는 필드
+```json
+{
+  "diagnosis": {
+    "diagnosis_percentage": 75,              // 0-100%
+    "diagnosis_type": "퇴행성형",            // OA/OVR/TRM/INF/STF 매핑
+    "diagnosis_description": "무릎 연골 약화…",
+    "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"]
+  }
+}
+```
+
+- 운동 추천 요청: 아래 필드만 보내면 됨 (선택값 없음)
+```json
+{
+  "user_id": "user_001",
+  "bucket": "OA",
+  "body_part": "knee",
+  "physical_score": { "total_score": 12 },
+  "exercise_days": 3,
+  "nrs": 5
+}
+```
+
+- 운동 추천 응답(앱 호환): `exercises_app` 사용
+```json
+{
+  "routine_date": "2025-01-11",
+  "exercises_app": [
+    {
+      "exerciseId": "EX001",
+      "nameKo": "무릎 스트레칭",
+      "difficulty": "기초 단계",
+      "recommendedSets": 3,
+      "recommendedReps": 10,
+      "exerciseOrder": 1,
+      "videoUrl": "https://..."
+    },
+    {
+      "exerciseId": "EX002",
+      "nameKo": "레그 레이즈",
+      "difficulty": "중급",
+      "recommendedSets": 3,
+      "recommendedReps": 12,
+      "exerciseOrder": 2,
+      "videoUrl": "https://…"
+    }
+  ]
+}
+```
+
 #### Request - 버킷 추론 `/api/v1/diagnose`
 
 필수:
