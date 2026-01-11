@@ -106,6 +106,20 @@ def custom_openapi():
                         "rpeResponse": "적당함",
                         "muscleStimulationResponse": "중간",
                         "sweatResponse": "보통",
+                        "previousRoutine": {
+                            "routineDate": "2025-01-11",
+                            "exercises": [
+                                {
+                                    "exerciseId": "EX001",
+                                    "nameKo": "무릎 스트레칭",
+                                    "difficulty": "기초 단계",
+                                    "recommendedSets": 3,
+                                    "recommendedReps": 10,
+                                    "exerciseOrder": 1,
+                                    "videoUrl": "https://..."
+                                }
+                            ]
+                        }
                     },
                     "bucket": "OA",
                     "bodyPart": "knee",
@@ -472,11 +486,6 @@ async def recommend_exercises(
             "pushupResponse": "5개",
             "stepupResponse": "15개",
             "plankResponse": "30초",
-            "postSurvey": {
-                "rpeResponse": "적당함",
-                "muscleStimulationResponse": "중간",
-                "sweatResponse": "보통",
-            },
             "bucket": "OA",
             "bodyPart": "knee",
             "age": 26,

@@ -75,6 +75,25 @@ class AppDiagnoseResponse(BaseModel):
         ..., alias="diagnosisDescription", description="진단 설명 (사용자용)"
     )
 
+
+class AppExerciseItem(BaseModel):
+    """앱 운동 추천 응답 아이템"""
+
+    exercise_id: str = Field(..., alias="exerciseId")
+    name_ko: str = Field(..., alias="nameKo")
+    difficulty: str
+    recommended_sets: int = Field(..., alias="recommendedSets")
+    recommended_reps: int = Field(..., alias="recommendedReps")
+    exercise_order: int = Field(..., alias="exerciseOrder")
+    video_url: Optional[str] = Field(default=None, alias="videoUrl")
+
+
+class AppPreviousRoutine(BaseModel):
+    """이전 운동 루틴 (출력 양식과 동일)"""
+
+    routine_date: date = Field(..., alias="routineDate")
+    exercises: List[AppExerciseItem]
+
 class AppPostSurvey(BaseModel):
     """사후 설문 (운동 후 피드백)"""
 
@@ -88,6 +107,11 @@ class AppPostSurvey(BaseModel):
     )
     sweat_response: Optional[str] = Field(
         default=None, alias="sweatResponse", description="운동 중 땀은 어느정도 났나요?"
+    )
+    previous_routine: Optional[AppPreviousRoutine] = Field(
+        default=None,
+        alias="previousRoutine",
+        description="이전에 수행한 루틴 (출력 양식 그대로)",
     )
 
 
@@ -106,11 +130,6 @@ class AppExerciseRequest(BaseModel):
                 "pushupResponse": "5개",
                 "stepupResponse": "15개",
                 "plankResponse": "30초",
-                "postSurvey": {
-                    "rpeResponse": "적당함",
-                    "muscleStimulationResponse": "중간",
-                    "sweatResponse": "보통"
-                },
                 "bucket": "OA",
                 "bodyPart": "knee",
                 "age": 26,
@@ -193,18 +212,6 @@ class AppExerciseRequest(BaseModel):
             return None
 
 
-class AppExerciseItem(BaseModel):
-    """앱 운동 추천 응답 아이템"""
-
-    exercise_id: str = Field(..., alias="exerciseId")
-    name_ko: str = Field(..., alias="nameKo")
-    difficulty: str
-    recommended_sets: int = Field(..., alias="recommendedSets")
-    recommended_reps: int = Field(..., alias="recommendedReps")
-    exercise_order: int = Field(..., alias="exerciseOrder")
-    video_url: Optional[str] = Field(default=None, alias="videoUrl")
-
-
 class AppExerciseResponse(BaseModel):
     """앱 운동 추천 응답 스키마"""
 
@@ -238,7 +245,7 @@ class AppExerciseResponse(BaseModel):
                     {
                         "exerciseId": "EX002",
                         "nameKo": "레그 레이즈",
-                        "difficulty": "중급",
+                        "difficulty": "표준 단계",
                         "recommendedSets": 3,
                         "recommendedReps": 12,
                         "exerciseOrder": 2,

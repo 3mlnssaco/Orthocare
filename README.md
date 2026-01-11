@@ -958,7 +958,9 @@ Full 응답 예시:
 백엔드 추가 선택:
 - `physicalScore` (4-16)  
   없으면 서버가 4문항 응답으로 내부 계산
-- `postSurvey` (사후 설문: rpeResponse/muscleStimulationResponse/sweatResponse)
+- `postSurvey` (사후 설문 + 이전 루틴)
+  - `rpeResponse`, `muscleStimulationResponse`, `sweatResponse`
+  - `previousRoutine` (출력 양식 그대로)
 
 요청 예시 (초기, 사후설문 없음):
 ```json
@@ -993,7 +995,21 @@ Full 응답 예시:
   "postSurvey": {
     "rpeResponse": "적당함",
     "muscleStimulationResponse": "중간",
-    "sweatResponse": "보통"
+    "sweatResponse": "보통",
+    "previousRoutine": {
+      "routineDate": "2025-01-11",
+      "exercises": [
+        {
+          "exerciseId": "EX001",
+          "nameKo": "무릎 스트레칭",
+          "difficulty": "기초 단계",
+          "recommendedSets": 3,
+          "recommendedReps": 10,
+          "exerciseOrder": 1,
+          "videoUrl": "https://..."
+        }
+      ]
+    }
   },
   "bucket": "OA",
   "bodyPart": "knee",
