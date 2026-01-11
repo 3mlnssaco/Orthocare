@@ -949,8 +949,7 @@ POST /api/v1/recommend-exercises
     }
   ],
   "last_assessment_date": "2025-12-04T10:00:00",
-  "skipped_exercises": ["E05"],
-  "favorite_exercises": ["E01", "E02"]
+  "skipped_exercises": ["E05"]
 }
 ```
 
@@ -976,7 +975,6 @@ POST /api/v1/recommend-exercises
 | └─ total_sets | int | | 총 세트 수 |
 | **last_assessment_date** | datetime | | 마지막 사후 설문 날짜 |
 | **skipped_exercises** | array | | 자주 건너뛴 운동 ID (우선순위 ↓) |
-| **favorite_exercises** | array | | 즐겨찾기 운동 ID (우선순위 ↑) |
 
 #### 신체 점수 레벨
 

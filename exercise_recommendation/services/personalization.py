@@ -27,7 +27,6 @@ class PersonalizationService:
         demographics: Demographics,
         nrs: int,
         skipped_exercises: Optional[List[str]] = None,
-        favorite_exercises: Optional[List[str]] = None,
         joint_status: Optional[JointStatus] = None,
     ) -> List[Dict]:
         """
@@ -38,7 +37,6 @@ class PersonalizationService:
             demographics: 인구통계 정보
             nrs: 통증 점수
             skipped_exercises: 자주 건너뛴 운동 ID
-            favorite_exercises: 즐겨찾기 운동 ID
             joint_status: 관절 상태 (v2.0)
 
         Returns:
@@ -75,10 +73,6 @@ class PersonalizationService:
             # 자주 건너뛴 운동 우선순위 하락
             if skipped_exercises and ex.get("id") in skipped_exercises:
                 adjusted["_priority_penalty"] = adjusted.get("_priority_penalty", 0) + 0.1
-
-            # 즐겨찾기 운동 우선순위 상승
-            if favorite_exercises and ex.get("id") in favorite_exercises:
-                adjusted["_priority_boost"] = adjusted.get("_priority_boost", 0) + 0.2
 
             # 환자 프로필에 맞는 운동 우선순위 상승
             adjusted = self._boost_appropriate_exercises(adjusted, demographics, nrs)

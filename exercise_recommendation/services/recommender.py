@@ -206,9 +206,6 @@ class ExerciseRecommender:
         preference_str = ""
         if user_input.skipped_exercises:
             preference_str += f"\n- 자주 건너뛴 운동: {', '.join(user_input.skipped_exercises[:5])}"
-        if user_input.favorite_exercises:
-            preference_str += f"\n- 즐겨찾기 운동: {', '.join(user_input.favorite_exercises[:5])}"
-
         prompt = f"""
 ## 환자 정보
 - 나이: {demo.age}세

@@ -184,10 +184,6 @@ class ExerciseRecommendationInput(BaseModel):
         default=None,
         description="자주 건너뛴 운동 ID"
     )
-    favorite_exercises: Optional[List[str]] = Field(
-        default=None,
-        description="즐겨찾기 운동 ID"
-    )
 
     @property
     def is_first_session(self) -> bool:
@@ -235,7 +231,6 @@ class ExerciseRecommendationInput(BaseModel):
                     }
                 ],
                 "last_assessment_date": "2026-01-06T10:00:00",
-                "skipped_exercises": ["E05"],
-                "favorite_exercises": ["E01", "E02"]
+                "skipped_exercises": ["E05"]
             }
         }
