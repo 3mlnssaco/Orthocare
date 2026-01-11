@@ -959,7 +959,11 @@ Full 응답 예시:
 - `bodyPart` (knee/shoulder/back/neck/ankle)
 - 인구통계: `age` + `gender` + `height` + `weight` (birthDate 대신 age 사용 가능)
 
-요청 예시:
+백엔드 추가 선택:
+- `physicalScore` (totalScore: 4-16)  
+  없으면 서버가 4문항 응답으로 내부 계산
+
+요청 예시 (초기, 사후설문 없음):
 ```json
 {
   "userId": 1,
@@ -977,7 +981,35 @@ Full 응답 예시:
   "age": 26,
   "gender": "FEMALE",
   "height": 170,
-  "weight": 65
+  "weight": 65,
+  "physicalScore": {
+    "totalScore": 12
+  }
+}
+```
+
+요청 예시 (사후설문 포함):
+```json
+{
+  "userId": 1,
+  "routineDate": "2025-01-11",
+  "painLevel": 5,
+  "squatResponse": "10개",
+  "pushupResponse": "5개",
+  "stepupResponse": "15개",
+  "plankResponse": "30초",
+  "rpeResponse": "적당함",
+  "muscleStimulationResponse": "중간",
+  "sweatResponse": "보통",
+  "bucket": "OA",
+  "bodyPart": "knee",
+  "age": 26,
+  "gender": "FEMALE",
+  "height": 170,
+  "weight": 65,
+  "physicalScore": {
+    "totalScore": 12
+  }
 }
 ```
 

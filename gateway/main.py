@@ -315,12 +315,25 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
     stepup = _parse_int(request.stepup_response)
     plank_seconds = _parse_duration_seconds(request.plank_response)
 
-    squat_score = _score_from_count(squat, (5, 10, 15))
-    pushup_score = _score_from_count(pushup, (3, 6, 10))
-    stepup_score = _score_from_count(stepup, (5, 10, 15))
-    plank_score = _score_from_count(plank_seconds, (10, 20, 40))
+    physical_score_override = request.physical_score
+    if not physical_score_override:
+        extra_score = extras.get("physicalScore")
+        if isinstance(extra_score, dict):
+            total = extra_score.get("totalScore") or extra_score.get("total_score")
+            if total is not None:
+                physical_score_override = {"totalScore": total}
 
-    total_score = max(4, min(16, squat_score + pushup_score + stepup_score + plank_score))
+    if physical_score_override:
+        if isinstance(physical_score_override, dict):
+            total_score = int(physical_score_override.get("totalScore"))
+        else:
+            total_score = int(physical_score_override.total_score)
+    else:
+        squat_score = _score_from_count(squat, (5, 10, 15))
+        pushup_score = _score_from_count(pushup, (3, 6, 10))
+        stepup_score = _score_from_count(stepup, (5, 10, 15))
+        plank_score = _score_from_count(plank_seconds, (10, 20, 40))
+        total_score = max(4, min(16, squat_score + pushup_score + stepup_score + plank_score))
 
     return ExerciseRecommendationInput(
         user_id=str(request.user_id),
@@ -381,6 +394,9 @@ async def recommend_exercises(
             "gender": "FEMALE",
             "height": 170,
             "weight": 65,
+            "physicalScore": {
+                "totalScore": 12
+            },
         },
     )
 ):
