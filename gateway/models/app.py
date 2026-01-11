@@ -5,6 +5,9 @@ from typing import Optional, Literal, List, Union, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
+from shared.models import Demographics, BodyPartInput
+from bucket_inference.models.input import NaturalLanguageInput
+
 
 class AppDiagnoseRequest(BaseModel):
     """앱 버킷 추론 요청 스키마 (요구 필드만 노출)"""
@@ -53,21 +56,27 @@ class AppDiagnoseRequest(BaseModel):
     red_flags: str = Field(..., alias="redFlags", description="위험 신호")
 
 
-class AppDiagnoseResponse(BaseModel):
-    """앱 버킷 추론 응답 스키마 (요약 필드만 노출)"""
+class AppSurveyDataResponse(BaseModel):
+    """앱 설문 데이터 응답 (요약)"""
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "diagnosisPercentage": 72,
-                "diagnosisType": "OA",
-                "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
-                "physicalScore": 70,
-            }
-        },
+    demographics: Demographics
+    body_parts: List[BodyPartInput]
+    natural_language: Optional[NaturalLanguageInput] = None
+    physical_score: Optional[int] = Field(
+        default=None,
+        description="신체 점수 (0-100)",
     )
+    raw_responses: Optional[Dict[str, Any]] = Field(default=None)
 
+
+class AppDiagnosisSummary(BaseModel):
+    """앱 버킷 추론 결과 요약"""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    body_part: str
+    final_bucket: str
+    confidence: float
     diagnosis_percentage: int = Field(..., alias="diagnosisPercentage", description="진단 확률 (0-100)")
     diagnosis_type: str = Field(
         ..., alias="diagnosisType", description="진단 유형 (버킷 코드: OA/OVR/TRM/INF/STF)"
@@ -75,7 +84,68 @@ class AppDiagnoseResponse(BaseModel):
     diagnosis_description: str = Field(
         ..., alias="diagnosisDescription", description="진단 설명 (사용자용)"
     )
-    physical_score: int = Field(..., alias="physicalScore", description="신체 점수 (0-100)")
+
+
+class AppDiagnoseResponse(BaseModel):
+    """앱 버킷 추론 응답 스키마 (앱 필요 필드만)"""
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "survey_data": {
+                    "demographics": {
+                        "age": 26,
+                        "sex": "female",
+                        "height_cm": 170,
+                        "weight_kg": 65
+                    },
+                    "body_parts": [
+                        {
+                            "code": "knee",
+                            "primary": True,
+                            "side": "both",
+                            "symptoms": [
+                                "계단 내려갈 때",
+                                "뻐근함",
+                                "30분 이상",
+                                "무리하게 운동한 이후부터 아파요"
+                            ],
+                            "nrs": 6,
+                            "red_flags_checked": []
+                        }
+                    ],
+                    "natural_language": {
+                        "chief_complaint": "무릎 통증",
+                        "pain_description": "계단 내려갈 때; 뻐근함; 30분 이상",
+                        "history": "무리하게 운동한 이후부터 아파요"
+                    },
+                    "physical_score": 68,
+                    "raw_responses": {
+                        "painArea": "무릎",
+                        "affectedSide": "양쪽",
+                        "painStartedDate": "무리하게 운동한 이후부터 아파요",
+                        "painLevel": 6,
+                        "painTrigger": "계단 내려갈 때",
+                        "painSensation": "뻐근함",
+                        "painDuration": "30분 이상",
+                        "redFlags": ""
+                    }
+                },
+                "diagnosis": {
+                    "body_part": "knee",
+                    "final_bucket": "OVR",
+                    "confidence": 0.85,
+                    "diagnosisPercentage": 85,
+                    "diagnosisType": "OVR",
+                    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴"
+                }
+            }
+        },
+    )
+
+    survey_data: AppSurveyDataResponse
+    diagnosis: AppDiagnosisSummary
 
 
 class AppExerciseItem(BaseModel):

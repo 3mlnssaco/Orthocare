@@ -837,43 +837,19 @@ POST /api/v1/recommend-exercises
 }
 ```
 
-#### Response - 버킷 추론 (앱에서 사용하는 필드)
+#### Response - 버킷 추론 (앱 응답)
 
-앱 표시용으로 사용하는 필드만 정리:
-- `diagnosisPercentage`
-- `diagnosisType` (버킷 코드: OA/OVR/TRM/INF/STF)
-- `diagnosisDescription`
-- `physicalScore` (0-100, GPT 추정)
+앱에서 필요한 필드만 반환:
+- `survey_data` (demographics/body_parts/natural_language/raw_responses/physical_score)
+- `diagnosis` (body_part/final_bucket/confidence + 앱 표시용 필드)
 
 버킷 구성 (부위별):
 - 무릎: `OA`, `OVR`, `TRM`, `INF`
 - 어깨: `OA`, `OVR`, `TRM`, `STF`
 
-앱 표시용 예시:
+응답 예시:
 ```json
 {
-  "diagnosis": {
-    "diagnosisPercentage": 75,
-    "diagnosisType": "OA",
-    "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
-    "physicalScore": 70
-  }
-}
-```
-
-#### Response - 버킷 추론 (추론 로그/저장용 Full)
-
-추론 과정/저장용으로 내려오는 전체 필드:
-- `request_id`, `user_id`
-- `survey_data` (demographics/body_parts/natural_language/raw_responses)
-- `diagnosis` (body_part/final_bucket/confidence/bucket_scores/weight_ranking/search_ranking/evidence_summary/llm_reasoning + 앱 표시용 필드)
-- `status`, `message`, `processed_at`, `processing_time_ms`
-
-Full 응답 예시:
-```json
-{
-  "request_id": "218a2b6c-da7d-4617-8b82-985ce8f6c7e4",
-  "user_id": "unknown",
   "survey_data": {
     "demographics": {
       "age": 26,
@@ -901,7 +877,7 @@ Full 응답 예시:
       "pain_description": "계단 내려갈 때; 뻐근함; 30분 이상",
       "history": "무리하게 운동한 이후부터 아파요"
     },
-    "physical_score": null,
+    "physical_score": 68,
     "raw_responses": {
       "painArea": "무릎",
       "affectedSide": "양쪽",
@@ -917,27 +893,10 @@ Full 응답 예시:
     "body_part": "knee",
     "final_bucket": "OVR",
     "confidence": 0.85,
-    "bucket_scores": {
-      "OA": 0,
-      "OVR": 0,
-      "TRM": 0,
-      "INF": 0
-    },
-    "weight_ranking": ["OA", "OVR", "TRM", "INF"],
-    "search_ranking": [],
-    "evidence_summary": "환자는 젊고, 무리한 운동 후 계단을 내려갈 때 뻐근함을 느끼며, 이는 과사용증후군의 전형적인 증상입니다.",
-    "llm_reasoning": "환자의 나이와 증상은 과사용증후군(OVR)에 잘 맞습니다.",
-    "red_flag": null,
-    "inferred_at": "2026-01-11T03:25:23.979948",
     "diagnosisPercentage": 85,
     "diagnosisType": "OVR",
-    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴",
-  },
-  "exercise_plan": null,
-  "status": "success",
-  "message": null,
-  "processed_at": "2026-01-11T03:25:23.982246",
-  "processing_time_ms": 5527
+    "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴"
+  }
 }
 ```
 
@@ -1003,12 +962,30 @@ Full 응답 예시:
       "routineDate": "2025-01-11",
       "exercises": [
         {
-          "exerciseId": "EX001",
-          "nameKo": "무릎 스트레칭",
+          "exerciseId": "E09",
+          "nameKo": "브리지",
           "difficulty": "기초 단계",
-          "recommendedSets": 3,
+          "recommendedSets": 2,
           "recommendedReps": 10,
           "exerciseOrder": 1,
+          "videoUrl": "https://..."
+        },
+        {
+          "exerciseId": "E13",
+          "nameKo": "부분 스쿼트",
+          "difficulty": "기초 단계",
+          "recommendedSets": 2,
+          "recommendedReps": 8,
+          "exerciseOrder": 2,
+          "videoUrl": "https://..."
+        },
+        {
+          "exerciseId": "E20",
+          "nameKo": "의자 일어서기",
+          "difficulty": "표준 단계",
+          "recommendedSets": 2,
+          "recommendedReps": 8,
+          "exerciseOrder": 3,
           "videoUrl": "https://..."
         }
       ]
@@ -1060,6 +1037,36 @@ Full 응답 예시:
     }
   ],
   "recommendationReason": "통증 수준과 신체 점수를 고려해 무릎 관절에 부담이 적은 강화 운동 위주로 구성했습니다."
+}
+```
+
+응답 예시 (사후 설문 반영, 점수 갱신):
+```json
+{
+  "userId": 1,
+  "routineDate": "2025-01-11",
+  "physicalScore": 72,
+  "exercises": [
+    {
+      "exerciseId": "EX001",
+      "nameKo": "무릎 스트레칭",
+      "difficulty": "기초 단계",
+      "recommendedSets": 3,
+      "recommendedReps": 10,
+      "exerciseOrder": 1,
+      "videoUrl": "https://..."
+    },
+    {
+      "exerciseId": "EX002",
+      "nameKo": "레그 레이즈",
+      "difficulty": "표준 단계",
+      "recommendedSets": 3,
+      "recommendedReps": 12,
+      "exerciseOrder": 2,
+      "videoUrl": "https://…"
+    }
+  ],
+  "recommendationReason": "사후 설문 결과를 반영해 난이도를 소폭 조정했습니다."
 }
 ```
 
@@ -1303,7 +1310,7 @@ OrthoCare 내부 `ExerciseRecommendationInput` 스키마를 그대로 사용합�
   "user_id": "user_ex_001",
   "body_part": "knee",
   "bucket": "OA",
-  "physical_score": { "total_score": 12 },
+  "physical_score": { "total_score": 70 },
   "demographics": { "age": 55, "sex": "male", "height_cm": 175, "weight_kg": 80 },
   "nrs": 5
 }

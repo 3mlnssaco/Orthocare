@@ -112,12 +112,30 @@ def custom_openapi():
                             "routineDate": "2025-01-11",
                             "exercises": [
                                 {
-                                    "exerciseId": "EX001",
-                                    "nameKo": "무릎 스트레칭",
+                                    "exerciseId": "E09",
+                                    "nameKo": "브리지",
                                     "difficulty": "기초 단계",
-                                    "recommendedSets": 3,
+                                    "recommendedSets": 2,
                                     "recommendedReps": 10,
                                     "exerciseOrder": 1,
+                                    "videoUrl": "https://..."
+                                },
+                                {
+                                    "exerciseId": "E13",
+                                    "nameKo": "부분 스쿼트",
+                                    "difficulty": "기초 단계",
+                                    "recommendedSets": 2,
+                                    "recommendedReps": 8,
+                                    "exerciseOrder": 2,
+                                    "videoUrl": "https://..."
+                                },
+                                {
+                                    "exerciseId": "E20",
+                                    "nameKo": "의자 일어서기",
+                                    "difficulty": "표준 단계",
+                                    "recommendedSets": 2,
+                                    "recommendedReps": 8,
+                                    "exerciseOrder": 3,
                                     "videoUrl": "https://..."
                                 }
                             ]
@@ -645,13 +663,22 @@ async def diagnose_only(request: AppDiagnoseRequest):
         # 앱 입력을 그대로 사용해 추론 (자동 매핑/변환 없음)
         unified_request = _build_unified_from_app(request)
         result = orchestration_service.process_diagnosis_only(unified_request)
-        payload = result.model_dump(by_alias=True)
-        physical_score = None
+        survey_payload = result.survey_data.model_dump(by_alias=True) if result.survey_data else {}
         if result.survey_data and result.survey_data.physical_score:
-            physical_score = result.survey_data.physical_score.total_score
-        if physical_score is not None:
-            payload["physicalScore"] = physical_score
-        return payload
+            survey_payload["physical_score"] = result.survey_data.physical_score.total_score
+        diagnosis = result.diagnosis
+        diagnosis_payload = {
+            "body_part": diagnosis.body_part,
+            "final_bucket": diagnosis.final_bucket,
+            "confidence": diagnosis.confidence,
+            "diagnosisPercentage": diagnosis.diagnosis_percentage,
+            "diagnosisType": diagnosis.diagnosis_type,
+            "diagnosisDescription": diagnosis.diagnosis_description,
+        }
+        return {
+            "survey_data": survey_payload,
+            "diagnosis": diagnosis_payload,
+        }
     except ValueError as e:
         raise HTTPException(
             status_code=400,
