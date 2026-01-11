@@ -841,18 +841,20 @@ POST /api/v1/recommend-exercises
 
 앱 표시용으로 사용하는 필드만 정리:
 - `diagnosisPercentage`
-- `diagnosisType`
+- `diagnosisType` (버킷 코드: OA/OVR/TRM/INF/STF)
 - `diagnosisDescription`
-- `tags`
+
+버킷 구성 (부위별):
+- 무릎: `OA`, `OVR`, `TRM`, `INF`
+- 어깨: `OA`, `OVR`, `TRM`, `STF`
 
 앱 표시용 예시:
 ```json
 {
   "diagnosis": {
     "diagnosisPercentage": 75,
-    "diagnosisType": "퇴행성형",
+    "diagnosisType": "OA",
     "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
-    "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"]
   }
 }
 ```
@@ -926,9 +928,8 @@ Full 응답 예시:
     "red_flag": null,
     "inferred_at": "2026-01-11T03:25:23.979948",
     "diagnosisPercentage": 85,
-    "diagnosisType": "과사용형",
+    "diagnosisType": "OVR",
     "diagnosisDescription": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴",
-    "tags": ["운동량 증가", "앞무릎 통증", "근육 불균형 교정"]
   },
   "exercise_plan": null,
   "status": "success",

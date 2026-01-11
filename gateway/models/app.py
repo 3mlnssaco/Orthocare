@@ -61,21 +61,19 @@ class AppDiagnoseResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "diagnosisPercentage": 72,
-                "diagnosisType": "퇴행성형",
+                "diagnosisType": "OA",
                 "diagnosisDescription": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
-                "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"],
             }
         },
     )
 
     diagnosis_percentage: int = Field(..., alias="diagnosisPercentage", description="진단 확률 (0-100)")
     diagnosis_type: str = Field(
-        ..., alias="diagnosisType", description="진단 유형 (예: 퇴행성형/과사용형/외상형/염증형)"
+        ..., alias="diagnosisType", description="진단 유형 (버킷 코드: OA/OVR/TRM/INF/STF)"
     )
     diagnosis_description: str = Field(
         ..., alias="diagnosisDescription", description="진단 설명 (사용자용)"
     )
-    tags: List[str] = Field(..., description="특징 태그 (최소 3개 권장)")
 
 class AppPostSurvey(BaseModel):
     """사후 설문 (운동 후 피드백)"""

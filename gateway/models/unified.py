@@ -238,39 +238,34 @@ class DiagnosisResult(BaseModel):
     diagnosis_type: Optional[str] = Field(
         default=None,
         alias="diagnosisType",
-        description="진단 유형 (예: 퇴행성형/과사용형/외상형/염증형)",
+        description="진단 유형 (버킷 코드: OA/OVR/TRM/INF/STF)",
     )
     diagnosis_description: Optional[str] = Field(
         default=None, alias="diagnosisDescription", description="진단 설명 (사용자용)"
-    )
-    tags: Optional[List[str]] = Field(
-        default=None, description="특징 태그 (최소 3개 권장)"
     )
 
     @classmethod
     def from_bucket_output(cls, output: BucketInferenceOutput) -> "DiagnosisResult":
         """BucketInferenceOutput에서 생성"""
-        # 버킷 → 유형/설명 매핑 (앱 표시용)
-        bucket_type_map = {
-            "OA": ("퇴행성형", "무릎 연골이 약해지고 아침에 뻣뻣하며 점진적으로 통증이 나타나는 패턴"),
-            "OVR": ("과사용형", "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴"),
-            "TRM": ("외상형", "넘어짐·비틀림 등 외상 이후 급성 통증과 붓기가 동반되는 패턴"),
-            "INF": ("염증형", "염증·붓기·열감이 있고 아침 강직이 두드러지는 패턴"),
-            "STF": ("경직형", "가동범위 제한과 야간통이 특징인 동결/경직 패턴"),
+        # 버킷 → 설명 매핑 (부위별)
+        bucket_desc_map = {
+            "knee": {
+                "OA": "무릎 연골이 약해지고 아침에 뻣뻣하며 점진적으로 통증이 나타나는 패턴",
+                "OVR": "반복 사용/운동량 증가 후 앞무릎 통증이 심해지는 패턴",
+                "TRM": "넘어짐·비틀림 등 외상 이후 급성 통증과 붓기가 동반되는 패턴",
+                "INF": "염증·붓기·열감이 있고 아침 강직이 두드러지는 패턴",
+            },
+            "shoulder": {
+                "OA": "어깨 관절 퇴행으로 뻣뻣함과 통증이 서서히 심해지는 패턴",
+                "OVR": "팔을 올리거나 반복 사용 후 통증이 악화되는 과사용 패턴",
+                "TRM": "외상 이후 힘 빠짐 또는 급성 통증이 동반되는 패턴",
+                "STF": "야간통과 가동범위 제한이 특징인 경직/동결견 패턴",
+            },
         }
-        diag_type, diag_desc = bucket_type_map.get(
-            output.final_bucket, (output.final_bucket, "해당 버킷 설명을 준비 중입니다.")
+        diag_desc = bucket_desc_map.get(output.body_part, {}).get(
+            output.final_bucket, "해당 버킷 설명을 준비 중입니다."
         )
-
-        # 버킷별 기본 태그 (앱 표시용)
-        bucket_tags = {
-            "OA": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"],
-            "OVR": ["운동량 증가", "앞무릎 통증", "근육 불균형 교정"],
-            "TRM": ["붓기·급성통증", "연골 약화", "근력 강화"],
-            "INF": ["염증 반응", "아침 강직", "가벼운 강화 운동"],
-            "STF": ["야간통", "가동범위 제한", "스트레칭/가동성"],
-        }
-        tags = bucket_tags.get(output.final_bucket, [output.final_bucket])
+        diag_type = output.final_bucket
 
         return cls(
             body_part=output.body_part,
@@ -286,7 +281,6 @@ class DiagnosisResult(BaseModel):
             diagnosis_percentage=int(round(output.confidence * 100)),
             diagnosis_type=diag_type,
             diagnosis_description=diag_desc,
-            tags=tags,
         )
 
 
@@ -458,9 +452,8 @@ class UnifiedResponse(BaseModel):
                     "final_bucket": "OA",
                     "confidence": 0.75,
                     "diagnosis_percentage": 75,
-                    "diagnosis_type": "퇴행성형",
+                    "diagnosis_type": "OA",
                     "diagnosis_description": "퇴행성 관절염 패턴: 아침 뻣뻣함, 점진적 통증",
-                    "tags": ["OA", "OVR", "INF"],
                     "bucket_scores": {
                         "OA": 6,
                         "OVR": 3,
