@@ -1032,7 +1032,7 @@ Full 응답 예시:
     {
       "exerciseId": "EX002",
       "nameKo": "레그 레이즈",
-      "difficulty": "중급",
+      "difficulty": "표준 단계",
       "recommendedSets": 3,
       "recommendedReps": 12,
       "exerciseOrder": 2,

@@ -225,6 +225,28 @@ def _parse_duration_seconds(text: str) -> int | None:
     return value
 
 
+def _map_difficulty_label(value: str | None) -> str | None:
+    if not value:
+        return value
+    key = value.strip().lower()
+    mapping = {
+        "beginner": "기초 단계",
+        "standard": "표준 단계",
+        "advanced": "강화 단계",
+        "expert": "심화 단계",
+        "low": "기초 단계",
+        "medium": "표준 단계",
+        "high": "강화 단계",
+        "mixed": "표준 단계",
+        "intermediate": "표준 단계",
+        "기초 단계": "기초 단계",
+        "표준 단계": "표준 단계",
+        "강화 단계": "강화 단계",
+        "심화 단계": "심화 단계",
+    }
+    return mapping.get(key, value)
+
+
 def _score_from_count(value: int | None, thresholds: tuple[int, int, int]) -> int:
     if value is None:
         return 2
@@ -418,7 +440,7 @@ def _build_exercises_app(exercises: list) -> list[dict]:
             {
                 "exerciseId": ex_dict.get("exercise_id"),
                 "nameKo": ex_dict.get("name_kr"),
-                "difficulty": ex_dict.get("difficulty"),
+                "difficulty": _map_difficulty_label(ex_dict.get("difficulty")),
                 "recommendedSets": ex_dict.get("sets"),
                 "recommendedReps": _parse_reps_value(ex_dict.get("reps")),
                 "exerciseOrder": idx,

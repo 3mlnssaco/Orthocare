@@ -313,15 +313,29 @@ class ExercisePlanResult(BaseModel):
         personalization_note: str = None,
     ) -> "ExercisePlanResult":
         """ExerciseRecommendationOutput에서 생성"""
+        difficulty_map = {
+            "beginner": "기초 단계",
+            "standard": "표준 단계",
+            "advanced": "강화 단계",
+            "expert": "심화 단계",
+            "low": "기초 단계",
+            "medium": "표준 단계",
+            "high": "강화 단계",
+            "mixed": "표준 단계",
+            "intermediate": "표준 단계",
+        }
+
         # 앱 호환용 exercise 필드 생성
         exercises_app = []
         for idx, ex in enumerate(output.exercises, start=1):
             ex_dict = ex.model_dump()
+            raw_diff = ex_dict.get("difficulty")
+            diff_key = str(raw_diff).lower() if raw_diff is not None else None
             exercises_app.append(
                 {
                     "exerciseId": ex_dict.get("exercise_id"),
                     "nameKo": ex_dict.get("name_kr"),
-                    "difficulty": ex_dict.get("difficulty"),
+                    "difficulty": difficulty_map.get(diff_key, raw_diff),
                     "recommendedSets": ex_dict.get("sets"),
                     "recommendedReps": ex_dict.get("reps"),
                     "exerciseOrder": idx,
