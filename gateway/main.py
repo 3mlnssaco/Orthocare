@@ -343,9 +343,9 @@ async def recommend_exercises(
             "pushupResponse": "5개",
             "stepupResponse": "15개",
             "plankResponse": "30초",
-            "rpeResponse": None,
-            "muscleStimulationResponse": None,
-            "sweatResponse": None,
+            "rpeResponse": "적당함",
+            "muscleStimulationResponse": "중간",
+            "sweatResponse": "보통",
         },
     )
 ):
