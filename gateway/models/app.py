@@ -1,7 +1,7 @@
 """App-facing request models for Gateway endpoints."""
 
 from datetime import date
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -81,3 +81,25 @@ class AppExerciseRequest(BaseModel):
         default=None, alias="muscleStimulationResponse"
     )
     sweat_response: Optional[str] = Field(default=None, alias="sweatResponse")
+
+
+class AppExerciseItem(BaseModel):
+    """앱 운동 추천 응답 아이템"""
+
+    exercise_id: str = Field(..., alias="exerciseId")
+    name_ko: str = Field(..., alias="nameKo")
+    difficulty: str
+    recommended_sets: int = Field(..., alias="recommendedSets")
+    recommended_reps: int | str = Field(..., alias="recommendedReps")
+    exercise_order: int = Field(..., alias="exerciseOrder")
+    video_url: Optional[str] = Field(default=None, alias="videoUrl")
+
+
+class AppExerciseResponse(BaseModel):
+    """앱 운동 추천 응답 스키마"""
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+    user_id: str = Field(..., alias="userId")
+    routine_date: date = Field(..., alias="routineDate")
+    exercises: List[AppExerciseItem]
