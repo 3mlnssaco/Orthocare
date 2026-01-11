@@ -26,6 +26,7 @@ from gateway.models import (
     UnifiedResponse,
     AppDiagnoseRequest,
     AppExerciseRequest,
+    AppExerciseResponse,
 )
 from gateway.services import OrchestrationService
 from exercise_recommendation.models.input import ExerciseRecommendationInput
@@ -320,7 +321,7 @@ async def health_check():
     }
 
 
-@app.post("/api/v1/recommend-exercises", response_model=ExerciseRecommendationOutput)
+@app.post("/api/v1/recommend-exercises", response_model=AppExerciseResponse)
 async def recommend_exercises(request: AppExerciseRequest):
     """운동 추천만 실행 (버킷 추론 생략)
 
@@ -329,13 +330,12 @@ async def recommend_exercises(request: AppExerciseRequest):
     try:
         exercise_input = _build_exercise_input_from_app(request)
         exercise_output = orchestration_service.exercise_pipeline.run(exercise_input)
-        exercise_output = exercise_output.model_copy(
-            update={
-                "routine_date": request.routine_date.isoformat(),
-                "exercises_app": _build_exercises_app(exercise_output.exercises),
-            }
-        )
-        return exercise_output
+        exercises_app = _build_exercises_app(exercise_output.exercises)
+        return {
+            "userId": request.user_id,
+            "routineDate": request.routine_date,
+            "exercises": exercises_app,
+        }
     except ValueError as e:
         raise HTTPException(
             status_code=400,
