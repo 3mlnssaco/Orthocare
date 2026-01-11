@@ -795,329 +795,8 @@ filters = {
 
 ## 7. API 엔드포인트 상세
 
-### 7.1 버킷 추론 API (Port 8001)
+### 7.1 Gateway API (앱용, Port 8000)
 
-```bash
-POST /api/v1/infer-bucket
-```
-
-#### Request 스키마
-
-```json
-{
-  "demographics": {
-    "age": 55,
-    "sex": "female",
-    "height_cm": 160,
-    "weight_kg": 65
-  },
-  "body_parts": [{
-    "code": "knee",
-    "primary": true,
-    "side": "both",
-    "symptoms": ["pain_bilateral", "chronic", "stairs_down", "stiffness_morning"],
-    "nrs": 6,
-    "red_flags_checked": []
-  }],
-  "natural_language": {
-    "chief_complaint": "양쪽 무릎이 아프고 계단 내려갈 때 힘들어요",
-    "pain_description": "아침에 뻣뻣하고 30분 정도 지나면 나아져요",
-    "history": "5년 전부터 서서히 심해짐"
-  }
-}
-```
-
-#### Request 필드 상세
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| **demographics** | object | ✓ | 인구통계학적 정보 |
-| ├─ age | int | ✓ | 나이 (10-100) |
-| ├─ sex | string | ✓ | 성별 (`male` / `female`) |
-| ├─ height_cm | float | ✓ | 키 (cm, 100-250) |
-| └─ weight_kg | float | ✓ | 몸무게 (kg, 30-200) |
-| **body_parts** | array | ✓ | 부위별 증상 입력 (최소 1개) |
-| ├─ code | string | ✓ | 부위 코드 (`knee`, `shoulder`, `back`, `neck`, `ankle`) |
-| ├─ primary | bool | | 주요 부위 여부 (기본: true) |
-| ├─ side | string | | 좌우 구분 (`left` / `right` / `both`) |
-| ├─ symptoms | array | | 증상 코드 리스트 |
-| ├─ nrs | int | ✓ | 통증 점수 (0-10) |
-| └─ red_flags_checked | array | | 확인된 레드플래그 코드 |
-| **natural_language** | object | | 자연어 입력 (선택) |
-| ├─ chief_complaint | string | | 주호소 - 사용자가 직접 입력한 증상 설명 |
-| ├─ pain_description | string | | 통증 설명 - 언제, 어떻게, 어디가 아픈지 |
-| └─ history | string | | 병력 - 이전 치료, 부상 경험 등 |
-
-#### 증상 코드 예시 (무릎)
-
-| 코드 | 설명 | 관련 버킷 |
-|------|------|----------|
-| `pain_stairs` | 계단 오르내릴 때 통증 | OA |
-| `stiffness_morning` | 아침 뻣뻣함 | OA |
-| `pain_running` | 달리기 시 통증 | OVR |
-| `swelling_acute` | 급성 부종 | TRM, INF |
-| `instability` | 무릎 불안정감 | TRM |
-| `warmth_redness` | 열감/발적 | INF |
-
-#### Response 스키마
-
-```json
-{
-  "body_part": "knee",
-  "final_bucket": "OA",
-  "confidence": 0.85,
-  "bucket_scores": {
-    "OA": 15.0,
-    "OVR": 4.0,
-    "TRM": 0.0,
-    "INF": 2.0
-  },
-  "weight_ranking": ["OA", "OVR", "INF", "TRM"],
-  "search_ranking": ["OA", "OVR", "TRM"],
-  "discrepancy": null,
-  "evidence_summary": "검증된 논문과 OARSI 가이드라인에 따르면, 55세 여성의 양측 무릎 통증, 아침 뻣뻣함, 계단 통증은 퇴행성 관절염(OA)의 전형적인 증상입니다.",
-  "llm_reasoning": "### 버킷 판단 근거\n- **가중치 분석**: OA 15점으로 최고점\n- **검색 분석**: OA 관련 논문 5개 매칭\n- **결론**: 두 경로 일치, OA로 최종 판단",
-  "red_flag": null,
-  "inferred_at": "2025-12-05T12:00:00"
-}
-```
-
-#### Response 필드 상세
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| **body_part** | string | 부위 코드 |
-| **final_bucket** | string | 최종 진단 버킷 (`OA` / `OVR` / `TRM` / `INF`) |
-| **confidence** | float | 신뢰도 (0-1) |
-| **bucket_scores** | object | 버킷별 가중치 점수 |
-| ├─ OA | float | 퇴행성 관절염 점수 |
-| ├─ OVR | float | 과사용 점수 |
-| ├─ TRM | float | 외상 점수 |
-| └─ INF | float | 염증 점수 |
-| **weight_ranking** | array | 가중치 기반 버킷 순위 |
-| **search_ranking** | array | 벡터 검색 기반 버킷 순위 |
-| **discrepancy** | object \| null | 가중치 vs 검색 불일치 정보 |
-| ├─ type | string | 불일치 유형 |
-| ├─ weight_ranking | array | 가중치 순위 |
-| ├─ search_ranking | array | 검색 순위 |
-| ├─ message | string | 경고 메시지 |
-| └─ severity | string | 심각도 (`warning` / `critical`) |
-| **evidence_summary** | string | 근거 요약 (LLM 생성, 논문 인용 포함) |
-| **llm_reasoning** | string | LLM 판단 근거 (마크다운) |
-| **red_flag** | object \| null | 레드플래그 결과 |
-| ├─ triggered | bool | 레드플래그 발동 여부 |
-| ├─ flags | array | 발동된 레드플래그 코드 |
-| ├─ messages | array | 경고 메시지들 |
-| └─ action | string | 권장 조치 (예: "즉시 병원 방문") |
-| **inferred_at** | datetime | 추론 시간 (ISO 8601) |
-
----
-
-### 7.2 운동 추천 API (Port 8002)
-
-```bash
-POST /api/v1/recommend-exercises
-```
-
-#### Request 스키마
-
-```json
-{
-  "user_id": "user_001",
-  "body_part": "knee",
-  "bucket": "OA",
-  "physical_score": {
-    "total_score": 9
-  },
-  "demographics": {
-    "age": 55,
-    "sex": "female",
-    "height_cm": 160,
-    "weight_kg": 65
-  },
-  "nrs": 5,
-  "previous_assessments": [
-    {
-      "session_date": "2025-12-04T10:00:00",
-      "difficulty_felt": 3,
-      "muscle_stimulus": 3,
-      "sweat_level": 2,
-      "pain_during_exercise": 4,
-      "skipped_exercises": [],
-      "completed_sets": 10,
-      "total_sets": 12
-    }
-  ],
-  "last_assessment_date": "2025-12-04T10:00:00",
-  "skipped_exercises": ["E05"]
-}
-```
-
-#### Request 필드 상세
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| **user_id** | string | ✓ | 사용자 ID |
-| **body_part** | string | ✓ | 부위 코드 (`knee` 등) |
-| **bucket** | string | ✓ | 버킷 추론 결과 (`OA`/`OVR`/`TRM`/`INF`) |
-| **physical_score** | object | ✓ | 신체 점수 |
-| └─ total_score | int | ✓ | 사전평가 총점 (4-16) |
-| **demographics** | object | ✓ | 인구통계 정보 (위와 동일) |
-| **nrs** | int | ✓ | 현재 통증 점수 (0-10) |
-| **previous_assessments** | array | | 이전 사후 설문 (최대 3세션) |
-| ├─ session_date | datetime | ✓ | 세션 날짜 |
-| ├─ difficulty_felt | int | ✓ | 운동 난이도 체감 (1-5) |
-| ├─ muscle_stimulus | int | ✓ | 근육 자극 정도 (1-5) |
-| ├─ sweat_level | int | ✓ | 땀 배출량 (1-5) |
-| ├─ pain_during_exercise | int | | 운동 중 통증 (0-10) |
-| ├─ skipped_exercises | array | | 건너뛴 운동 ID 목록 |
-| ├─ completed_sets | int | | 완료한 세트 수 |
-| └─ total_sets | int | | 총 세트 수 |
-| **last_assessment_date** | datetime | | 마지막 사후 설문 날짜 |
-| **skipped_exercises** | array | | 자주 건너뛴 운동 ID (우선순위 ↓) |
-
-#### 신체 점수 레벨
-
-| 레벨 | 점수 범위 | 허용 난이도 | 운동 개수 |
-|------|----------|------------|----------|
-| **A** | 14-16점 | low, medium, high | 6개 |
-| **B** | 11-13점 | low, medium, high | 5개 |
-| **C** | 8-10점 | low, medium | 4개 |
-| **D** | 4-7점 | low | 3개 |
-
-#### Response 스키마
-
-```json
-{
-  "user_id": "user_001",
-  "body_part": "knee",
-  "bucket": "OA",
-  "exercises": [
-    {
-      "exercise_id": "E01",
-      "name_kr": "힐 슬라이드",
-      "name_en": "Heel Slide",
-      "difficulty": "low",
-      "function_tags": ["Mobility", "Stretching"],
-      "target_muscles": ["대퇴사두근", "햄스트링"],
-      "sets": 2,
-      "reps": "10회",
-      "rest": "30초",
-      "reason": "무릎 가동범위 개선에 효과적이며, 55세 여성의 OA 상태에 적합한 저강도 운동입니다.",
-      "priority": 1,
-      "match_score": 0.95,
-      "youtube": "https://youtube.com/watch?v=xxx",
-      "description": "누운 상태에서 발꿈치를 바닥에 대고 무릎을 구부렸다 폅니다."
-    },
-    {
-      "exercise_id": "E02",
-      "name_kr": "클램쉘",
-      "name_en": "Clamshell",
-      "difficulty": "low",
-      "function_tags": ["Strengthening", "Stability"],
-      "target_muscles": ["중둔근", "외회전근"],
-      "sets": 2,
-      "reps": "15회",
-      "rest": "30초",
-      "reason": "고관절 안정성 강화로 무릎 부담을 줄여줍니다.",
-      "priority": 2,
-      "match_score": 0.92,
-      "youtube": "https://youtube.com/watch?v=yyy",
-      "description": "옆으로 누워 무릎을 구부린 상태에서 위쪽 무릎을 들어올립니다."
-    }
-  ],
-  "excluded": [
-    {
-      "exercise_id": "E10",
-      "name_kr": "점프 스쿼트",
-      "reason": "NRS 5점으로 고강도 운동 제외",
-      "exclusion_type": "nrs"
-    }
-  ],
-  "routine_order": ["E01", "E02", "E03", "E04", "E05"],
-  "total_duration_min": 15,
-  "difficulty_level": "low",
-  "adjustments_applied": {
-    "difficulty_delta": 0,
-    "sets_delta": 0,
-    "reps_delta": 0
-  },
-  "assessment_status": "normal",
-  "assessment_message": "2세션 완료. 1세션 후 난이도가 조정됩니다.",
-  "llm_reasoning": "### 운동 조합 근거\n- **시너지**: 가동성 → 근력 순서로 워밍업 효과 극대화\n- **버킷 치료**: OA 관절 보호를 위한 저충격 운동 위주 선택\n\n### 환자 맞춤 고려사항\n- **나이 고려**: 55세로 중년기, 중등도 이하 난이도 적합\n- **BMI 고려**: 25.4로 과체중, 체중 부하 운동 최소화\n- **통증 고려**: NRS 5점으로 중등도 통증, 고강도 제외",
-  "recommended_at": "2025-12-05T12:30:00"
-}
-```
-
-#### Response 필드 상세
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| **user_id** | string | 사용자 ID |
-| **body_part** | string | 부위 코드 |
-| **bucket** | string | 진단 버킷 |
-| **exercises** | array | 추천 운동 목록 (최소 1개) |
-| ├─ exercise_id | string | 운동 ID |
-| ├─ name_kr | string | 한글명 |
-| ├─ name_en | string | 영문명 |
-| ├─ difficulty | string | 난이도 (`low`/`medium`/`high`) |
-| ├─ function_tags | array | 기능 태그 (아래 참조) |
-| ├─ target_muscles | array | 타겟 근육 |
-| ├─ sets | int | 세트 수 |
-| ├─ reps | string | 반복 횟수 (예: "10회", "30초") |
-| ├─ rest | string | 휴식 시간 (예: "30초") |
-| ├─ reason | string | 이 환자에게 추천하는 구체적 이유 |
-| ├─ priority | int | 우선순위 (1=최우선) |
-| ├─ match_score | float | 적합도 점수 (0-1) |
-| ├─ youtube | string \| null | 유튜브 영상 링크 |
-| └─ description | string \| null | 운동 설명 |
-| **excluded** | array | 제외된 운동 목록 |
-| ├─ exercise_id | string | 운동 ID |
-| ├─ name_kr | string | 한글명 |
-| ├─ reason | string | 제외 사유 |
-| └─ exclusion_type | string | 제외 유형 (아래 참조) |
-| **routine_order** | array | 루틴 순서 (운동 ID 배열) |
-| **total_duration_min** | int | 예상 소요 시간 (분) |
-| **difficulty_level** | string | 전체 난이도 (`low`/`medium`/`high`/`mixed`) |
-| **adjustments_applied** | object | 적용된 조정 |
-| ├─ difficulty_delta | int | 난이도 변화 (-1/0/+1) |
-| ├─ sets_delta | int | 세트 수 변화 |
-| └─ reps_delta | int | 반복 횟수 변화 |
-| **assessment_status** | string | 사후 설문 처리 상태 (아래 참조) |
-| **assessment_message** | string | 사후 설문 처리 메시지 |
-| **llm_reasoning** | string | LLM 추천 근거 (마크다운) |
-| **recommended_at** | datetime | 추천 시간 (ISO 8601) |
-
-#### function_tags (기능 태그)
-
-| 태그 | 설명 | 루틴 순서 |
-|------|------|----------|
-| `Mobility` | 관절 가동성 | 1 (준비) |
-| `Stretching` | 스트레칭 | 2 (준비) |
-| `Strengthening` | 근력 강화 | 3 (본운동) |
-| `Stability` | 안정성 | 4 (마무리) |
-| `Balance` | 균형 | 5 (마무리) |
-
-#### exclusion_type (제외 유형)
-
-| 타입 | 설명 |
-|------|------|
-| `contraindication` | 금기 사항 |
-| `difficulty` | 난이도 부적합 |
-| `nrs` | 통증 점수 기준 제외 |
-| `assessment` | 사후 설문 기반 제외 |
-
-#### assessment_status (사후 설문 상태)
-
-| 상태 | 설명 |
-|------|------|
-| `fresh_start` | 최초 운동 (사전 평가만 사용) |
-| `normal` | 정상 (이전 기록 반영, 3세션 완료 시 조정) |
-| `reset` | 리셋 (7일+ 미접속 또는 기록 손실) |
-
----
-
-### 7.3 Gateway API (앱용, Port 8000)
 
 ```bash
 POST /api/v1/diagnose
@@ -1161,10 +840,8 @@ POST /api/v1/recommend-exercises
 #### Response - 버킷 추론
 
 주요 필드:
-- `survey_data` (요청 원본 저장용)
-- `diagnosis` (final_bucket, confidence, evidence_summary)
-- `exercise_plan` (없으면 null; 버킷 추론만이면 null)
-- `status`, `message`, `processing_time_ms`
+- `diagnosis` (diagnosisPercentage/diagnosisType/diagnosisDescription/tags 포함)
+- `status`, `processing_time_ms`
 
 최소 응답 예시:
 ```json
@@ -1172,11 +849,11 @@ POST /api/v1/recommend-exercises
   "request_id": "uuid",
   "user_id": "user_001",
   "diagnosis": {
-    "body_part": "knee",
-    "final_bucket": "OA",
-    "confidence": 0.75
+    "diagnosis_percentage": 75,
+    "diagnosis_type": "퇴행성형",
+    "diagnosis_description": "무릎 연골 약화로 통증이 점진적으로 나타나는 패턴",
+    "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"]
   },
-  "exercise_plan": null,
   "status": "success",
   "processing_time_ms": 8000
 }
@@ -1195,6 +872,8 @@ POST /api/v1/recommend-exercises
 - `rpeResponse`
 - `muscleStimulationResponse`
 - `sweatResponse`
+
+참고: 최초 운동 추천 시 `rpeResponse/muscleStimulationResponse/sweatResponse`는 null로 전달.
 
 요청 예시:
 ```json
@@ -1215,10 +894,37 @@ POST /api/v1/recommend-exercises
 #### Response - 운동 추천
 
 주요 필드:
-- `exercise_plan` → exercises[], routine_order, total_duration_min, difficulty_level
-- `llm_reasoning`
+- `userId`
+- `routineDate`
+- `exercises[]` (exerciseId/nameKo/difficulty/recommendedSets/recommendedReps/exerciseOrder/videoUrl)
 
-응답 예시는 [운동 추천 스키마](#7-2-운동-추천-api-요약)를 따릅니다.
+응답 예시:
+```json
+{
+  "userId": 1,
+  "routineDate": "2025-01-11",
+  "exercises": [
+    {
+      "exerciseId": "EX001",
+      "nameKo": "무릎 스트레칭",
+      "difficulty": "기초 단계",
+      "recommendedSets": 3,
+      "recommendedReps": 10,
+      "exerciseOrder": 1,
+      "videoUrl": "https://..."
+    },
+    {
+      "exerciseId": "EX002",
+      "nameKo": "레그 레이즈",
+      "difficulty": "중급",
+      "recommendedSets": 3,
+      "recommendedReps": 12,
+      "exerciseOrder": 2,
+      "videoUrl": "https://…"
+    }
+  ]
+}
+```
 
 ---
 
@@ -1620,9 +1326,47 @@ python test_railway_api.py https://<your-app>.up.railway.app
 
 ### 최신 배포 테스트 결과
 
-- URL: https://orthocare-production.up.railway.app
-- 테스트 시간: 2026-01-06 01:03 EST
-- 결과: `/health`, `/api/v1/diagnose`, `/api/v1/recommend-exercises` 성공
+테스트 대상: https://orthocare-production.up.railway.app  
+테스트 시간: 2026-01-10 06:39 UTC  
+테스트 방법: `python test_railway_api.py https://orthocare-production.up.railway.app`
+
+1) 헬스 체크
+```json
+{
+  "status": "healthy",
+  "service": "gateway",
+  "timestamp": "2026-01-10T06:39:01.215737"
+}
+```
+
+2) 버킷 추론 (/api/v1/diagnose)
+```json
+{
+  "request_id": "34b3d1fe-8be9-4a94-b278-2f8fa0a0b562",
+  "user_id": "test_user_002",
+  "diagnosis": {
+    "body_part": "knee",
+    "final_bucket": "OA",
+    "confidence": 0.75
+  },
+  "exercise_plan": null,
+  "status": "success",
+  "processing_time_ms": 5580
+}
+```
+
+3) 운동 추천 (/api/v1/recommend-exercises)
+```json
+{
+  "user_id": "user_123",
+  "body_part": "knee",
+  "bucket": "OA",
+  "routine_order": ["E09", "E13", "E18", "E15", "E10", "E20"],
+  "total_duration_min": 16,
+  "difficulty_level": "medium",
+  "recommended_at": "2026-01-10T06:39:16.958967"
+}
+```
 
 ---
 
