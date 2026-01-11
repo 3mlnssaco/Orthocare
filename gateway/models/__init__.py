@@ -9,6 +9,7 @@ from .unified import (
     DiagnosisResult,
     ExercisePlanResult,
 )
+from .app import AppDiagnoseRequest, AppExerciseRequest
 
 __all__ = [
     "UnifiedRequest",
@@ -18,4 +19,6 @@ __all__ = [
     "SurveyData",
     "DiagnosisResult",
     "ExercisePlanResult",
+    "AppDiagnoseRequest",
+    "AppExerciseRequest",
 ]

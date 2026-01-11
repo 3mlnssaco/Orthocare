@@ -1124,113 +1124,37 @@ POST /api/v1/diagnose
 POST /api/v1/recommend-exercises
 ```
 
-#### 앱 요구사항에 맞춘 최소 필드
-
-- 버킷 추론 요청: 아래 필드만 보내면 됨 (나머지 옵션 무시)
-```json
-{
-  "user_id": "user_001",
-  "demographics": {
-    "age": 55,              // birthDate → age 변환값
-    "sex": "female",        // male/female/prefer_not_to_say
-    "height_cm": 160,
-    "weight_kg": 65
-  },
-  "body_parts": [
-    {
-      "code": "knee",           // painArea
-      "side": "both",           // affectedSide
-      "symptoms": ["pain_medial", "stiffness_morning"], // painTrigger/painSensation/painDuration을 증상 코드로 변환해 전달
-      "nrs": 6                  // painLevel
-    }
-  ]
-}
-```
-
-- 버킷 추론 응답: 앱에서 쓰는 필드
-```json
-{
-  "diagnosis": {
-    "diagnosis_percentage": 75,              // 0-100%
-    "diagnosis_type": "퇴행성형",            // OA/OVR/TRM/INF/STF 매핑
-    "diagnosis_description": "무릎 연골 약화…",
-    "tags": ["연골 약화", "계단·보행 시 통증", "근력·가동성 운동"]
-  }
-}
-```
-
-- 운동 추천 요청: 아래 필드만 보내면 됨 (선택값 없음)
-```json
-{
-  "user_id": "user_001",
-  "bucket": "OA",
-  "body_part": "knee",
-  "physical_score": { "total_score": 12 },
-  "exercise_days": 3,
-  "nrs": 5
-}
-```
-
-- 운동 추천 응답(앱 호환): `exercises_app` 사용
-```json
-{
-  "routine_date": "2025-01-11",
-  "exercises_app": [
-    {
-      "exerciseId": "EX001",
-      "nameKo": "무릎 스트레칭",
-      "difficulty": "기초 단계",
-      "recommendedSets": 3,
-      "recommendedReps": 10,
-      "exerciseOrder": 1,
-      "videoUrl": "https://..."
-    },
-    {
-      "exerciseId": "EX002",
-      "nameKo": "레그 레이즈",
-      "difficulty": "중급",
-      "recommendedSets": 3,
-      "recommendedReps": 12,
-      "exerciseOrder": 2,
-      "videoUrl": "https://…"
-    }
-  ]
-}
-```
-
 #### Request - 버킷 추론 `/api/v1/diagnose`
 
 필수:
-- `user_id`
-- `demographics` (age/sex/height_cm/weight_kg)  // sex: male/female/prefer_not_to_say
-- `body_parts[]` (code/side/symptoms/nrs)  ※ red_flags_checked는 생략 가능
+- `birthDate`
+- `height`
+- `weight`
+- `gender` (MALE/FEMALE/PREFER_NOT_TO_SAY)
+- `painArea`
+- `affectedSide`
+- `painStartedDate`
+- `painLevel`
+- `painTrigger`
+- `painSensation`
+- `painDuration`
+- `redFlags`
 
-선택:
-- `request_id`
-- `natural_language` (chief_complaint/pain_description/history) ※ 자유 텍스트, 없어도 됨
-- `raw_survey_responses`
-- `physical_score.total_score` (운동 추천 시에만 전달; 버킷 추론만이면 생략)
-- `options` (운동 추천용 옵션; 버킷 추론만이면 생략)
-
-최소 요청 (버킷 추론만):
+요청 예시:
 ```json
 {
-  "user_id": "user_001",
-  "demographics": {
-    "age": 55,
-    "sex": "female",
-    "height_cm": 160,
-    "weight_kg": 65
-  },
-  "body_parts": [
-    {
-      "code": "knee",
-      "primary": true,
-      "side": "both",
-      "symptoms": ["pain_medial", "stiffness_morning"],
-      "nrs": 6
-    }
-  ],
+  "birthDate": "2000-01-01",
+  "height": 170,
+  "weight": 65,
+  "gender": "FEMALE",
+  "painArea": "무릎",
+  "affectedSide": "양쪽",
+  "painStartedDate": "무리하게 운동한 이후부터 아파요",
+  "painLevel": 6,
+  "painTrigger": "계단 내려갈 때",
+  "painSensation": "뻐근함",
+  "painDuration": "30분 이상",
+  "redFlags": ""
 }
 ```
 
@@ -1261,29 +1185,26 @@ POST /api/v1/recommend-exercises
 #### Request - 운동 추천 `/api/v1/recommend-exercises`
 
 필수:
-- `user_id`
-- `bucket` (버킷 추론 결과)
-- `body_part`
-- `physical_score.total_score` (4~16)
-- `exercise_days` (주당 운동 일수)
+- `userId`
+- `routineDate`
+- `painLevel`
+- `squatResponse`
+- `pushupResponse`
+- `stepupResponse`
+- `plankResponse`
+- `rpeResponse`
+- `muscleStimulationResponse`
+- `sweatResponse`
 
-선택:
-- `nrs`, `include_exercises`, `skip_exercise_on_red_flag`
-- 사전평가 4문항 문자열(`squatResponse/pushupResponse/stepupResponse/plankResponse`)
-- 이전 피드백(`rpeResponse/muscleStimulationResponse/sweatResponse`)은 2회차부터 전달
-
-예시:
+요청 예시:
 ```json
 {
-  "user_id": "user_001",
-  "bucket": "OA",
-  "body_part": "knee",
-  "nrs": 4,
-  "physical_score": {"total_score": 12},
-  "exercise_days": 3,
-  "squatResponse": "10개 가능",
-  "pushupResponse": "무릎대고 5개",
-  "stepupResponse": "한쪽 10회",
+  "userId": 1,
+  "routineDate": "2025-01-11",
+  "painLevel": 5,
+  "squatResponse": "10개",
+  "pushupResponse": "5개",
+  "stepupResponse": "15개",
   "plankResponse": "30초",
   "rpeResponse": null,
   "muscleStimulationResponse": null,

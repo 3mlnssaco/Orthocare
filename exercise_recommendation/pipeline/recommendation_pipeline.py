@@ -86,7 +86,6 @@ class ExerciseRecommendationPipeline:
             demographics=input_data.demographics,
             nrs=input_data.nrs,
             skipped_exercises=input_data.skipped_exercises,
-            favorite_exercises=input_data.favorite_exercises,
             joint_status=input_data.joint_status,
         )
 
