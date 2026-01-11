@@ -1,6 +1,6 @@
 """운동 추천 출력 모델"""
 
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -84,6 +84,14 @@ class ExerciseRecommendationOutput(BaseModel):
     recommended_at: datetime = Field(
         default_factory=datetime.utcnow,
         description="추천 시간"
+    )
+
+    # 앱 호환 필드 (선택)
+    routine_date: Optional[str] = Field(
+        default=None, description="루틴 날짜 (YYYY-MM-DD)"
+    )
+    exercises_app: Optional[List[Dict[str, Any]]] = Field(
+        default=None, description="앱 호환 운동 목록"
     )
 
     @property

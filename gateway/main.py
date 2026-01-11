@@ -292,6 +292,24 @@ def _build_exercise_input_from_app(request: AppExerciseRequest) -> ExerciseRecom
     )
 
 
+def _build_exercises_app(exercises: list) -> list[dict]:
+    exercises_app = []
+    for idx, ex in enumerate(exercises, start=1):
+        ex_dict = ex.model_dump()
+        exercises_app.append(
+            {
+                "exerciseId": ex_dict.get("exercise_id"),
+                "nameKo": ex_dict.get("name_kr"),
+                "difficulty": ex_dict.get("difficulty"),
+                "recommendedSets": ex_dict.get("sets"),
+                "recommendedReps": ex_dict.get("reps"),
+                "exerciseOrder": idx,
+                "videoUrl": ex_dict.get("youtube"),
+            }
+        )
+    return exercises_app
+
+
 @app.get("/health")
 async def health_check():
     """헬스 체크"""
@@ -311,6 +329,12 @@ async def recommend_exercises(request: AppExerciseRequest):
     try:
         exercise_input = _build_exercise_input_from_app(request)
         exercise_output = orchestration_service.exercise_pipeline.run(exercise_input)
+        exercise_output = exercise_output.model_copy(
+            update={
+                "routine_date": request.routine_date.isoformat(),
+                "exercises_app": _build_exercises_app(exercise_output.exercises),
+            }
+        )
         return exercise_output
     except ValueError as e:
         raise HTTPException(
